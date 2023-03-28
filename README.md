@@ -1,0 +1,2 @@
+# CordovaWebView
+基于Android端CordovaLib的封装，可以像使用自定义控件一样使用在Activity、Fragment甚至是自定义View中使用Cordova，摆脱了必须继承CordovaActivity的限制。
