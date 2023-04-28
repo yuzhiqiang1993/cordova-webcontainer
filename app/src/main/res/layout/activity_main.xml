@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.appcompat.widget.LinearLayoutCompat xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context="com.yzq.demo.activity.MainActivity">
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btn_cordova_activity_sample"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="继承自CordovaActivity示例" />
+
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btn_container_activity_sample"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="继承自YumcWebContainerActivity示例" />
+
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btn_fragment_sample"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="在Fragment中使用示例" />
+
+    <!--基于Cordova封装的web容器控件-->
+    <com.yzq.cordova_webcontainer.CordovaWebContainer
+        android:id="@+id/web_container"
+        android:layout_width="300dp"
+        android:layout_height="300dp"
+        android:layout_gravity="center"
+        android:layout_marginTop="10dp" />
+
+
+</androidx.appcompat.widget.LinearLayoutCompat>

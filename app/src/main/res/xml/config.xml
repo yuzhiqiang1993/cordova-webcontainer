@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="com.example.hello"
+    version="1.0.0"
+    xmlns="http://www.w3.org/ns/widgets">
+    <name>HelloWorld</name>
+    <description>Sample Apache Cordova App</description>
+    <author
+        email="dev@cordova.apache.org"
+        href="https://cordova.apache.org">
+        Apache Cordova Team
+    </author>
+    <content src="index.html" />
+    <allow-intent href="http://*/*" />
+    <allow-intent href="https://*/*" />
+    <preference
+        name="applicationId"
+        value="com.yzq.demo" />
+    <preference
+        name="loglevel"
+        value="DEBUG" />
+    <feature name="Camera">
+        <param
+            name="android-package"
+            value="org.apache.cordova.camera.CameraLauncher" />
+    </feature>
+    <feature name="Battery">
+        <param
+            name="android-package"
+            value="org.apache.cordova.batterystatus.BatteryListener" />
+    </feature>
+</widget>
