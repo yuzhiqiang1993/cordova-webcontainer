@@ -5,19 +5,9 @@ plugins {
 
 android {
     namespace = "org.apache.cordova"
-    compileSdk = 33
+    compileSdk = 32
     defaultConfig {
         minSdk = 23
-    }
-
-    buildTypes {
-        getByName("release") {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
     }
 
     sourceSets {
