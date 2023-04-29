@@ -35,7 +35,6 @@ class MainActivity : AppCompatActivity() {
             /*初始化*/
             webContainer.init(this@MainActivity, this@MainActivity)
             /*加载url*/
-//            val url = "https://sit-rider.yumchina.com/static/rider_exam_h5/index.html?SIGNED=1"
             val url = "https://www.baidu.com/"
             webContainer.loadUrl(url)
 

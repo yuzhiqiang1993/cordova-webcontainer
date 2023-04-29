@@ -22,7 +22,7 @@
         android:id="@+id/btn_container_activity_sample"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="继承自YumcWebContainerActivity示例" />
+        android:text="继承自 CordovaWebContainerActivity 示例" />
 
 
     <androidx.appcompat.widget.AppCompatButton

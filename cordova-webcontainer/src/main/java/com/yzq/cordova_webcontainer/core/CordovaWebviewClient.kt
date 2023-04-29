@@ -17,8 +17,8 @@ open class CordovaWebviewClient(
 ) : SystemWebViewClient(parentEngine) {
 
     private val TAG = "CordovaWebviewClient"
-    private var yumInterceptRequest: CordovaInterceptRequest = null
-    private var yumOverrideUrlLoading: CordovaOverrideUrlLoading = null
+    private var interceptRequest: CordovaInterceptRequest = null
+    private var overrideUrlLoading: CordovaOverrideUrlLoading = null
 
 
     /**
@@ -27,11 +27,11 @@ open class CordovaWebviewClient(
      * @param block
      */
     fun interceptRequest(block: CordovaInterceptRequest) {
-        this.yumInterceptRequest = block
+        this.interceptRequest = block
     }
 
     fun overrideUrlLoading(block: CordovaOverrideUrlLoading) {
-        this.yumOverrideUrlLoading = block
+        this.overrideUrlLoading = block
     }
 
 
@@ -52,8 +52,8 @@ open class CordovaWebviewClient(
          * 内部调用了插件的getPathHandler方法，不写的话所有插件中的getPathHandler不会被调用
          */
         val resourceResponse = super.shouldInterceptRequest(view, request)
-        if (yumInterceptRequest != null) {
-            return yumInterceptRequest!!.invoke(view, request, resourceResponse)
+        if (interceptRequest != null) {
+            return interceptRequest!!.invoke(view, request, resourceResponse)
         }
 
         return resourceResponse
@@ -64,8 +64,8 @@ open class CordovaWebviewClient(
         view: WebView,
         request: WebResourceRequest,
     ): Boolean {
-        if (yumOverrideUrlLoading != null) {
-            return yumOverrideUrlLoading!!.invoke(view, request)
+        if (overrideUrlLoading != null) {
+            return overrideUrlLoading!!.invoke(view, request)
         }
         return super.shouldOverrideUrlLoading(view, request)
     }

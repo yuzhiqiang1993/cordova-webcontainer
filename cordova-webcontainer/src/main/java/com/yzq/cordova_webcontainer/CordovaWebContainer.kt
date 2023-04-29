@@ -48,7 +48,7 @@ class CordovaWebContainer @JvmOverloads constructor(
 
     private var initialized = false
 
-    private val yumcDocumentJsInterface: CordovaJsInterface = YumcDocumentJsInterface()
+    private val documentJsInterface: CordovaJsInterface = DocumentJsInterface()
     lateinit var hostActivity: AppCompatActivity
     lateinit var hostLifecycleOwner: LifecycleOwner
 
@@ -105,7 +105,7 @@ class CordovaWebContainer @JvmOverloads constructor(
         cordovaInterface = makeCordovaInterface()
         /*初始化webview*/
         initWebView()
-        Log.i(TAG, "YumcWebContainer init complete")
+        Log.i(TAG, "CordovaWebContainer init complete")
     }
 
 
@@ -129,7 +129,7 @@ class CordovaWebContainer @JvmOverloads constructor(
         _webChromeClient = CordovaWebviewChormeClient(webViewEngine)
         webview.webChromeClient = _webChromeClient
 
-        addJavascriptInterface(yumcDocumentJsInterface)
+        addJavascriptInterface(documentJsInterface)
 
         /*处理宿主的生命周期*/
         handleHostLifecycle()
@@ -435,7 +435,7 @@ class CordovaWebContainer @JvmOverloads constructor(
         webview.evaluateJavascript(
             """
                 document.addEventListener('readystatechange', function () {
-                    window.${yumcDocumentJsInterface.getJsName()}.readyStateChange(document.readyState)
+                    window.${documentJsInterface.getJsName()}.readyStateChange(document.readyState)
                 });
             """.trimIndent(), null
         )
@@ -445,14 +445,14 @@ class CordovaWebContainer @JvmOverloads constructor(
                 window.onerror = function (msg, url, lineNo, columnNo, error) {
                     const data = {msg, url, lineNo, columnNo};
                     var stringify = JSON.stringify(data);
-                    window.${yumcDocumentJsInterface.getJsName()}.windowOnError(stringify);
+                    window.${documentJsInterface.getJsName()}.windowOnError(stringify);
                 };
         """.trimIndent(), null
         )
     }
 
 
-    inner class YumcDocumentJsInterface : CordovaJsInterface("yumcDocumentJsInterface") {
+    inner class DocumentJsInterface : CordovaJsInterface("DocumentJsInterface") {
         @JavascriptInterface
         fun readyStateChange(event: String = "") {
             appView.pluginManager.postMessage(PluginMessageId.readyStateChange, event)
