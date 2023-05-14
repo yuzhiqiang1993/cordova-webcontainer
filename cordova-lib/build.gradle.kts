@@ -8,6 +8,7 @@ android {
     compileSdk = 32
     defaultConfig {
         minSdk = 23
+        consumerProguardFiles("proguard-rules.pro")
     }
 
     sourceSets {
