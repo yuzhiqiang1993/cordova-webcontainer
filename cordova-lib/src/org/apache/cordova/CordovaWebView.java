@@ -31,7 +31,7 @@ import java.util.Map;
  * are not expected to implement it.
  */
 public interface CordovaWebView {
-    String CORDOVA_VERSION = "11.0.0";
+    String CORDOVA_VERSION = "12.0.0";
 
     void init(CordovaInterface cordova, List<PluginEntry> pluginEntries, CordovaPreferences preferences);
 
@@ -126,25 +126,19 @@ public interface CordovaWebView {
     CordovaResourceApi getResourceApi();
 
     void setButtonPlumbedToJs(int keyCode, boolean override);
-
     boolean isButtonPlumbedToJs(int keyCode);
 
     void sendPluginResult(PluginResult cr, String callbackId);
 
     PluginManager getPluginManager();
-
     CordovaWebViewEngine getEngine();
-
     CordovaPreferences getPreferences();
-
     ICordovaCookieManager getCookieManager();
 
     String getUrl();
 
     // TODO: Work on deleting these by removing refs from plugins.
     Context getContext();
-
     void loadUrl(String url);
-
     Object postMessage(String id, Object data);
 }

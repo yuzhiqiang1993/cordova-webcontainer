@@ -57,8 +57,10 @@ public class CallbackContext {
                 finished = !pluginResult.getKeepCallback();
             }
         }
+        /*自定义新增开始*/
         PlugnExecResult plugnExecFinish = new PlugnExecResult(callbackId, PluginResult.StatusMessages[pluginResult.getStatus()], pluginResult.getMessage());
         webView.getPluginManager().postMessage(PluginMessageId.pluginResult, plugnExecFinish);
+        /*自定义新增结束*/
         webView.sendPluginResult(pluginResult, callbackId);
     }
 

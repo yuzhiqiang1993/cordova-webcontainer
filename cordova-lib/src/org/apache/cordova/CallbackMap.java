@@ -27,8 +27,8 @@ import android.util.SparseArray;
  * collide with requests from other plugins that use the same request code value.
  */
 public class CallbackMap {
-    private final SparseArray<Pair<CordovaPlugin, Integer>> callbacks;
     private int currentCallbackId = 0;
+    private final SparseArray<Pair<CordovaPlugin, Integer>> callbacks;
 
     public CallbackMap() {
         this.callbacks = new SparseArray<Pair<CordovaPlugin, Integer>>();

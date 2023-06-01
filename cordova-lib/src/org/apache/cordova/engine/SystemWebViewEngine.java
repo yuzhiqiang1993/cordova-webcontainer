@@ -84,13 +84,6 @@ public class SystemWebViewEngine implements CordovaWebViewEngine {
         cookieManager = new SystemCookieManager(webView);
     }
 
-    // Yeah, we know. It'd be great if lint was just a little smarter.
-    @SuppressLint("AddJavascriptInterface")
-    private static void exposeJsInterface(WebView webView, CordovaBridge bridge) {
-        SystemExposedJsApi exposedJsApi = new SystemExposedJsApi(bridge);
-        webView.addJavascriptInterface(exposedJsApi, "_cordovaNative");
-    }
-
     @Override
     public void init(CordovaWebView parentWebView, CordovaInterface cordova, Client client,
                      CordovaResourceApi resourceApi, PluginManager pluginManager,
@@ -147,6 +140,22 @@ public class SystemWebViewEngine implements CordovaWebViewEngine {
         return webView;
     }
 
+    // Yeah, we know. It'd be great if lint was just a little smarter.
+    @SuppressLint("AddJavascriptInterface")
+    private static void exposeJsInterface(WebView webView, CordovaBridge bridge) {
+        SystemExposedJsApi exposedJsApi = new SystemExposedJsApi(bridge);
+        webView.addJavascriptInterface(exposedJsApi, "_cordovaNative");
+    }
+
+    private void enableRemoteDebugging() {
+        try {
+            WebView.setWebContentsDebuggingEnabled(true);
+        } catch (IllegalArgumentException e) {
+            LOG.d(TAG, "You have one job! To turn on Remote Web Debugging! YOU HAVE FAILED! ");
+            e.printStackTrace();
+        }
+    }
+
     @SuppressLint({"NewApi", "SetJavaScriptEnabled"})
     @SuppressWarnings("deprecation")
     private void initWebViewSettings() {
@@ -181,9 +190,19 @@ public class SystemWebViewEngine implements CordovaWebViewEngine {
         String databasePath = webView.getContext().getApplicationContext().getDir("database", Context.MODE_PRIVATE).getPath();
         settings.setDatabaseEnabled(true);
 
-        //Determine whether we're in debug or release mode, and turn on Debugging!
-        ApplicationInfo appInfo = webView.getContext().getApplicationContext().getApplicationInfo();
-        if ((appInfo.flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+        // The default is to use the module's debuggable state to decide if the webview inspecter
+        // should be enabled. However, users can configure InspectableWebview preference to forcefully enable
+        // or disable the webview inspecter.
+        String inspectableWebview = preferences.getString("InspectableWebview", null);
+        boolean shouldEnableInspector = false;
+        if (inspectableWebview == null) {
+            ApplicationInfo appInfo = webView.getContext().getApplicationContext().getApplicationInfo();
+            shouldEnableInspector = (appInfo.flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+        } else if ("true".equals(inspectableWebview)) {
+            shouldEnableInspector = true;
+        }
+
+        if (shouldEnableInspector) {
             enableRemoteDebugging();
         }
 
@@ -226,14 +245,6 @@ public class SystemWebViewEngine implements CordovaWebViewEngine {
         // end CB-1405
     }
 
-    private void enableRemoteDebugging() {
-        try {
-            WebView.setWebContentsDebuggingEnabled(true);
-        } catch (IllegalArgumentException e) {
-            LOG.d(TAG, "You have one job! To turn on Remote Web Debugging! YOU HAVE FAILED! ");
-            e.printStackTrace();
-        }
-    }
 
     /**
      * Load the url into the webview.

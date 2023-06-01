@@ -26,28 +26,6 @@ import org.json.JSONObject;
 import java.util.List;
 
 public class PluginResult {
-    public static final int MESSAGE_TYPE_STRING = 1;
-    public static final int MESSAGE_TYPE_JSON = 2;
-    public static final int MESSAGE_TYPE_NUMBER = 3;
-    public static final int MESSAGE_TYPE_BOOLEAN = 4;
-    public static final int MESSAGE_TYPE_NULL = 5;
-    public static final int MESSAGE_TYPE_ARRAYBUFFER = 6;
-    // Use BINARYSTRING when your string may contain null characters.
-    // This is required to work around a bug in the platform :(.
-    public static final int MESSAGE_TYPE_BINARYSTRING = 7;
-    public static final int MESSAGE_TYPE_MULTIPART = 8;
-    public static String[] StatusMessages = new String[]{
-            "No result",
-            "OK",
-            "Class not found",
-            "Illegal access",
-            "Instantiation error",
-            "Malformed url",
-            "IO error",
-            "Invalid action",
-            "JSON error",
-            "Error"
-    };
     private final int status;
     private final int messageType;
     private boolean keepCallback = false;
@@ -77,17 +55,8 @@ public class PluginResult {
         encodedMessage = message.toString();
     }
 
-    public PluginResult(Status status, int i) {
-        this.status = status.ordinal();
-        this.messageType = MESSAGE_TYPE_NUMBER;
-        this.encodedMessage = "" + i;
-    }
-
-    public PluginResult(Status status, float f) {
-        this.status = status.ordinal();
-        this.messageType = MESSAGE_TYPE_NUMBER;
-        this.encodedMessage = "" + f;
-    }
+    public static final int MESSAGE_TYPE_STRING = 1;
+    public static final int MESSAGE_TYPE_JSON = 2;
 
     public PluginResult(Status status, boolean b) {
         this.status = status.ordinal();
@@ -111,6 +80,8 @@ public class PluginResult {
         this.messageType = MESSAGE_TYPE_MULTIPART;
         this.multipartMessages = multipartMessages;
     }
+
+    public static final int MESSAGE_TYPE_NUMBER = 3;
 
     public int getStatus() {
         return status;
@@ -147,10 +118,6 @@ public class PluginResult {
         return this.keepCallback;
     }
 
-    public void setKeepCallback(boolean b) {
-        this.keepCallback = b;
-    }
-
     @Deprecated // Use sendPluginResult instead of sendJavascript.
     public String getJSONString() {
         return "{\"status\":" + this.status + ",\"message\":" + this.getMessage() + ",\"keepCallback\":" + this.keepCallback + "}";
@@ -179,6 +146,42 @@ public class PluginResult {
     @Deprecated // Use sendPluginResult instead of sendJavascript.
     public String toErrorCallbackString(String callbackId) {
         return "cordova.callbackError('" + callbackId + "', " + this.getJSONString() + ");";
+    }
+
+    public static final int MESSAGE_TYPE_BOOLEAN = 4;
+    public static final int MESSAGE_TYPE_NULL = 5;
+    public static final int MESSAGE_TYPE_ARRAYBUFFER = 6;
+    // Use BINARYSTRING when your string may contain null characters.
+    // This is required to work around a bug in the platform :(.
+    public static final int MESSAGE_TYPE_BINARYSTRING = 7;
+    public static final int MESSAGE_TYPE_MULTIPART = 8;
+    public static String[] StatusMessages = new String[]{
+            "No result",
+            "OK",
+            "Class not found",
+            "Illegal access",
+            "Instantiation error",
+            "Malformed url",
+            "IO error",
+            "Invalid action",
+            "JSON error",
+            "Error"
+    };
+
+    public PluginResult(Status status, int i) {
+        this.status = status.ordinal();
+        this.messageType = MESSAGE_TYPE_NUMBER;
+        this.encodedMessage = String.valueOf(i);
+    }
+
+    public PluginResult(Status status, float f) {
+        this.status = status.ordinal();
+        this.messageType = MESSAGE_TYPE_NUMBER;
+        this.encodedMessage = String.valueOf(f);
+    }
+
+    public void setKeepCallback(boolean b) {
+        this.keepCallback = b;
     }
 
     public enum Status {

@@ -23,7 +23,6 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.util.Pair;
 
@@ -41,12 +40,13 @@ import java.util.concurrent.Executors;
  */
 public class CordovaInterfaceImpl implements CordovaInterface {
     private static final String TAG = "CordovaInterfaceImpl";
-    public CordovaPlugin activityResultCallback;
     protected AppCompatActivity activity;
     protected ExecutorService threadPool;
     protected PluginManager pluginManager;
+
     protected ActivityResultHolder savedResult;
     protected CallbackMap permissionResultCallbacks;
+    public CordovaPlugin activityResultCallback;
     protected String initCallbackService;
     protected int activityResultRequestCode;
     protected boolean activityWasDestroyed = false;
@@ -195,6 +195,10 @@ public class CordovaInterfaceImpl implements CordovaInterface {
         activityWasDestroyed = true;
     }
 
+    public boolean hasPermission(String permission) {
+        return PackageManager.PERMISSION_GRANTED == activity.checkSelfPermission(permission);
+    }
+
     /**
      * Called by the system when the user grants permissions
      *
@@ -220,15 +224,6 @@ public class CordovaInterfaceImpl implements CordovaInterface {
     public void requestPermissions(CordovaPlugin plugin, int requestCode, String[] permissions) {
         int mappedRequestCode = permissionResultCallbacks.registerCallback(plugin, requestCode);
         getActivity().requestPermissions(permissions, mappedRequestCode);
-    }
-
-    public boolean hasPermission(String permission) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            int result = activity.checkSelfPermission(permission);
-            return PackageManager.PERMISSION_GRANTED == result;
-        } else {
-            return true;
-        }
     }
 
     private static class ActivityResultHolder {

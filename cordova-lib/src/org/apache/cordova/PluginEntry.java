@@ -72,10 +72,10 @@ public final class PluginEntry {
     }
 
     /**
-     * @param service     The name of the service
-     * @param pluginClass The plugin class name
-     * @param onload      Create plugin object when HTML page is loaded
-     * @param plugin      The CordovaPlugin already instantiated
+     * @param service               The name of the service
+     * @param pluginClass           The plugin class name
+     * @param onload                Create plugin object when HTML page is loaded
+     * @param plugin                The CordovaPlugin already instantiated
      */
     private PluginEntry(String service, String pluginClass, boolean onload, CordovaPlugin plugin) {
         this.service = service;

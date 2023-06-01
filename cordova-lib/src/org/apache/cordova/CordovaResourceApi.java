@@ -43,8 +43,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.zip.GZIPInputStream;
 
-import kotlin.jvm.Throws;
-
 /**
  * What this class provides:
  * 1. Helpers for reading & writing to URLs.
@@ -64,6 +62,9 @@ import kotlin.jvm.Throws;
  * for large payloads.
  */
 public class CordovaResourceApi {
+    @SuppressWarnings("unused")
+    private static final String LOG_TAG = "CordovaResourceApi";
+
     public static final int URI_TYPE_FILE = 0;
     public static final int URI_TYPE_ASSET = 1;
     public static final int URI_TYPE_CONTENT = 2;
@@ -73,9 +74,9 @@ public class CordovaResourceApi {
     public static final int URI_TYPE_HTTPS = 6;
     public static final int URI_TYPE_PLUGIN = 7;
     public static final int URI_TYPE_UNKNOWN = -1;
+
     public static final String PLUGIN_URI_SCHEME = "cdvplugin";
-    @SuppressWarnings("unused")
-    private static final String LOG_TAG = "CordovaResourceApi";
+
     private static final String[] LOCAL_FILE_PROJECTION = {"_data"};
 
     public static Thread jsThread;
@@ -91,6 +92,17 @@ public class CordovaResourceApi {
         this.assetManager = context.getAssets();
         this.pluginManager = pluginManager;
     }
+
+    private static void assertNonRelative(Uri uri) {
+        if (!uri.isAbsolute()) {
+            throw new IllegalArgumentException("Relative URIs are not supported.");
+        }
+    }
+
+    public boolean isThreadCheckingEnabled() {
+        return threadCheckingEnabled;
+    }
+
 
     public static int getUriType(Uri uri) {
         assertNonRelative(uri);
@@ -120,20 +132,6 @@ public class CordovaResourceApi {
             return URI_TYPE_PLUGIN;
         }
         return URI_TYPE_UNKNOWN;
-    }
-
-    private static void assertNonRelative(Uri uri) {
-        if (!uri.isAbsolute()) {
-            throw new IllegalArgumentException("Relative URIs are not supported.");
-        }
-    }
-
-    public boolean isThreadCheckingEnabled() {
-        return threadCheckingEnabled;
-    }
-
-    public void setThreadCheckingEnabled(boolean value) {
-        threadCheckingEnabled = value;
     }
 
     public Uri remapUri(Uri uri) {
@@ -206,6 +204,7 @@ public class CordovaResourceApi {
         return null;
     }
 
+
     //This already exists
     private String getMimeTypeFromPath(String path) {
         String extension = path;
@@ -224,6 +223,10 @@ public class CordovaResourceApi {
         return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
     }
 
+    public void setThreadCheckingEnabled(boolean value) {
+        threadCheckingEnabled = value;
+    }
+
     /**
      * Opens a stream to the given URI, also providing the MIME type & length.
      *
@@ -235,6 +238,10 @@ public class CordovaResourceApi {
      */
     public OpenForReadResult openForRead(Uri uri) throws IOException {
         return openForRead(uri, false);
+    }
+
+    public OutputStream openOutputStream(Uri uri) throws IOException {
+        return openOutputStream(uri, false);
     }
 
     /**
@@ -319,8 +326,9 @@ public class CordovaResourceApi {
         throw new FileNotFoundException("URI not supported by CordovaResourceApi: " + uri);
     }
 
-    public OutputStream openOutputStream(Uri uri) throws IOException {
-        return openOutputStream(uri, false);
+    public HttpURLConnection createHttpConnection(Uri uri) throws IOException {
+        assertBackgroundThread();
+        return (HttpURLConnection) new URL(uri.toString()).openConnection();
     }
 
     /**
@@ -351,9 +359,38 @@ public class CordovaResourceApi {
         throw new FileNotFoundException("URI not supported by CordovaResourceApi: " + uri);
     }
 
-    public HttpURLConnection createHttpConnection(Uri uri) throws IOException {
-        assertBackgroundThread();
-        return (HttpURLConnection) new URL(uri.toString()).openConnection();
+    public void copyResource(Uri sourceUri, OutputStream outputStream) throws IOException {
+        copyResource(openForRead(sourceUri), outputStream);
+    }
+
+    // Added in 3.5.0.
+    public void copyResource(Uri sourceUri, Uri dstUri) throws IOException {
+        copyResource(openForRead(sourceUri), openOutputStream(dstUri));
+    }
+
+    private void assertBackgroundThread() {
+        if (threadCheckingEnabled) {
+            Thread curThread = Thread.currentThread();
+            if (curThread == Looper.getMainLooper().getThread()) {
+                throw new IllegalStateException("Do not perform IO operations on the UI thread. Use CordovaInterface.getThreadPool() instead.");
+            }
+            if (curThread == jsThread) {
+                throw new IllegalStateException("Tried to perform an IO operation on the WebCore thread. Use CordovaInterface.getThreadPool() instead.");
+            }
+        }
+    }
+
+    private String getDataUriMimeType(Uri uri) {
+        String uriAsString = uri.getSchemeSpecificPart();
+        int commaPos = uriAsString.indexOf(',');
+        if (commaPos == -1) {
+            return null;
+        }
+        String[] mimeParts = uriAsString.substring(0, commaPos).split(";");
+        if (mimeParts.length > 0) {
+            return mimeParts[0];
+        }
+        return null;
     }
 
     // Copies the input to the output in the most efficient manner possible.
@@ -393,40 +430,6 @@ public class CordovaResourceApi {
                 outputStream.close();
             }
         }
-    }
-
-    public void copyResource(Uri sourceUri, OutputStream outputStream) throws IOException {
-        copyResource(openForRead(sourceUri), outputStream);
-    }
-
-    // Added in 3.5.0.
-    public void copyResource(Uri sourceUri, Uri dstUri) throws IOException {
-        copyResource(openForRead(sourceUri), openOutputStream(dstUri));
-    }
-
-    private void assertBackgroundThread() {
-        if (threadCheckingEnabled) {
-            Thread curThread = Thread.currentThread();
-            if (curThread == Looper.getMainLooper().getThread()) {
-                throw new IllegalStateException("Do not perform IO operations on the UI thread. Use CordovaInterface.getThreadPool() instead.");
-            }
-            if (curThread == jsThread) {
-                throw new IllegalStateException("Tried to perform an IO operation on the WebCore thread. Use CordovaInterface.getThreadPool() instead.");
-            }
-        }
-    }
-
-    private String getDataUriMimeType(Uri uri) {
-        String uriAsString = uri.getSchemeSpecificPart();
-        int commaPos = uriAsString.indexOf(',');
-        if (commaPos == -1) {
-            return null;
-        }
-        String[] mimeParts = uriAsString.substring(0, commaPos).split(";");
-        if (mimeParts.length > 0) {
-            return mimeParts[0];
-        }
-        return null;
     }
 
     private OpenForReadResult readDataUri(Uri uri) {

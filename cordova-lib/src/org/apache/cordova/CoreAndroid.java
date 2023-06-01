@@ -31,7 +31,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.lang.reflect.Field;
 import java.util.HashMap;
 
 /**
@@ -41,32 +40,11 @@ public class CoreAndroid extends CordovaPlugin {
 
     public static final String PLUGIN_NAME = "CoreAndroid";
     protected static final String TAG = "CordovaApp";
-    private final Object messageChannelLock = new Object();
     private BroadcastReceiver telephonyReceiver;
     private CallbackContext messageChannel;
     private PluginResult pendingResume;
     private PluginResult pendingPause;
-
-    public static Object getBuildConfigValue(Context ctx, String key) {
-        try {
-            Class<?> clazz = Class.forName(ctx.getClass().getPackage().getName() + ".BuildConfig");
-            Field field = clazz.getField(key);
-            return field.get(null);
-        } catch (ClassNotFoundException e) {
-            LOG.d(TAG, "Unable to get the BuildConfig, is this built with ANT?");
-            e.printStackTrace();
-        } catch (NoSuchFieldException e) {
-            LOG.d(TAG, key + " is not a valid field. Check your build.gradle.kts");
-        } catch (IllegalAccessException e) {
-            LOG.d(TAG, "Illegal Access Exception: Let's print a stack trace.");
-            e.printStackTrace();
-        } catch (NullPointerException e) {
-            LOG.d(TAG, "Null Pointer Exception: Let's print a stack trace.");
-            e.printStackTrace();
-        }
-
-        return null;
-    }
+    private final Object messageChannelLock = new Object();
 
     /**
      * Send an event to be fired on the Javascript side.
@@ -85,10 +63,6 @@ public class CoreAndroid extends CordovaPlugin {
     public void pluginInitialize() {
         this.initTelephonyReceiver();
     }
-
-    //--------------------------------------------------------------------------
-    // LOCAL METHODS
-    //--------------------------------------------------------------------------
 
     /**
      * Executes the request and returns PluginResult.
@@ -151,6 +125,10 @@ public class CoreAndroid extends CordovaPlugin {
         }
     }
 
+    //--------------------------------------------------------------------------
+    // LOCAL METHODS
+    //--------------------------------------------------------------------------
+
     /**
      * Clear the resource cache.
      */
@@ -162,58 +140,19 @@ public class CoreAndroid extends CordovaPlugin {
         });
     }
 
-    /**
-     * Load the url into the webview.
+    /*
+     * This needs to be implemented if you wish to use the Camera Plugin or other plugins
+     * that read the Build Configuration.
      *
-     * @param url
-     * @param props Properties that can be passed in to the Cordova activity (i.e. loadingDialog, wait, ...)
-     * @throws JSONException
+     * Thanks to Phil@Medtronic and Graham Borland for finding the answer and posting it to
+     * StackOverflow.  This is annoying as hell!
+     *
+     * @deprecated Use {@link BuildHelper#getBuildConfigValue} instead.
      */
-    public void loadUrl(String url, JSONObject props) throws JSONException {
-        LOG.d("App", "App.loadUrl(" + url + "," + props + ")");
-        int wait = 0;
-        boolean openExternal = false;
-        boolean clearHistory = false;
-
-        // If there are properties, then set them on the Activity
-        HashMap<String, Object> params = new HashMap<String, Object>();
-        if (props != null) {
-            JSONArray keys = props.names();
-            for (int i = 0; i < keys.length(); i++) {
-                String key = keys.getString(i);
-                if (key.equals("wait")) {
-                    wait = props.getInt(key);
-                } else if (key.equalsIgnoreCase("openexternal")) {
-                    openExternal = props.getBoolean(key);
-                } else if (key.equalsIgnoreCase("clearhistory")) {
-                    clearHistory = props.getBoolean(key);
-                } else {
-                    Object value = props.get(key);
-                    if (value == null) {
-
-                    } else if (value.getClass().equals(String.class)) {
-                        params.put(key, value);
-                    } else if (value.getClass().equals(Boolean.class)) {
-                        params.put(key, value);
-                    } else if (value.getClass().equals(Integer.class)) {
-                        params.put(key, value);
-                    }
-                }
-            }
-        }
-
-        // If wait property, then delay loading
-
-        if (wait > 0) {
-            try {
-                synchronized (this) {
-                    this.wait(wait);
-                }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-        this.webView.showWebPage(url, openExternal, clearHistory, params);
+    @Deprecated
+    public static Object getBuildConfigValue(Context ctx, String key) {
+        LOG.w(TAG, "CoreAndroid.getBuildConfigValue is deprecated and will be removed in a future release. Use BuildHelper.getBuildConfigValue instead.");
+        return BuildHelper.getBuildConfigValue(ctx, key);
     }
 
     /**
@@ -283,6 +222,7 @@ public class CoreAndroid extends CordovaPlugin {
     public void exitApp() {
         this.webView.getPluginManager().postMessage(PluginMessageId.exit, null);
     }
+
 
     /**
      * Listen for telephony events: RINGING, OFFHOOK and IDLE
@@ -358,15 +298,6 @@ public class CoreAndroid extends CordovaPlugin {
         webView.getContext().unregisterReceiver(this.telephonyReceiver);
     }
 
-    /*
-     * This needs to be implemented if you wish to use the Camera Plugin or other plugins
-     * that read the Build Configuration.
-     *
-     * Thanks to Phil@Medtronic and Graham Borland for finding the answer and posting it to
-     * StackOverflow.  This is annoying as hell!
-     *
-     */
-
     /**
      * Used to send the resume event in the case that the Activity is destroyed by the OS
      *
@@ -384,5 +315,59 @@ public class CoreAndroid extends CordovaPlugin {
                 this.pendingResume = resumeEvent;
             }
         }
+    }
+
+    /**
+     * Load the url into the webview.
+     *
+     * @param url
+     * @param props Properties that can be passed in to the Cordova activity (i.e. loadingDialog, wait, ...)
+     * @throws JSONException
+     */
+    public void loadUrl(String url, JSONObject props) throws JSONException {
+        LOG.d("App", "App.loadUrl(" + url + "," + props + ")");
+        int wait = 0;
+        boolean openExternal = false;
+        boolean clearHistory = false;
+
+        // If there are properties, then set them on the Activity
+        HashMap<String, Object> params = new HashMap<String, Object>();
+        if (props != null) {
+            JSONArray keys = props.names();
+            for (int i = 0; i < keys.length(); i++) {
+                String key = keys.getString(i);
+                if (key.equals("wait")) {
+                    wait = props.getInt(key);
+                } else if (key.equalsIgnoreCase("openexternal")) {
+                    openExternal = props.getBoolean(key);
+                } else if (key.equalsIgnoreCase("clearhistory")) {
+                    clearHistory = props.getBoolean(key);
+                } else {
+                    Object value = props.get(key);
+                    if (value == null) {
+
+                    } else if (value.getClass().equals(String.class)) {
+                        params.put(key, value);
+                    } else if (value.getClass().equals(Boolean.class)) {
+                        params.put(key, value);
+                    } else if (value.getClass().equals(Integer.class)) {
+                        params.put(key, value);
+                    }
+                }
+            }
+        }
+
+        // If wait property, then delay loading
+
+        if (wait > 0) {
+            try {
+                synchronized (this) {
+                    this.wait(wait);
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        this.webView.showWebPage(url, openExternal, clearHistory, params);
     }
 }

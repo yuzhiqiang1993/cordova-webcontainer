@@ -36,6 +36,7 @@ import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.splashscreen.SplashScreen;
 
 import org.apache.cordova.customer.constant.PluginMessageId;
 import org.json.JSONException;
@@ -75,12 +76,15 @@ import java.util.Locale;
  * deprecated in favor of the config.xml file.
  */
 public class CordovaActivity extends AppCompatActivity {
+    public static String TAG = "CordovaActivity";
+
+    // The webview for our app
+    protected CordovaWebView appView;
+
     private static final int ACTIVITY_STARTING = 0;
     private static final int ACTIVITY_RUNNING = 1;
     private static final int ACTIVITY_EXITING = 2;
-    public static String TAG = "CordovaActivity";
-    // The webview for our app
-    protected CordovaWebView appView;
+
     // Keep app running when pause is received. (default = true)
     // If true, then the JavaScript and native code continue to run in the background
     // when another application (activity) is started.
@@ -95,7 +99,7 @@ public class CordovaActivity extends AppCompatActivity {
     protected ArrayList<PluginEntry> pluginEntries;
     protected CordovaInterfaceImpl cordovaInterface;
 
-//    private SplashScreen splashScreen;
+    private SplashScreen splashScreen;
 
     /**
      * Called when the activity is first created.
@@ -103,7 +107,7 @@ public class CordovaActivity extends AppCompatActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         // Handle the splash screen transition.
-//        splashScreen = SplashScreen.installSplashScreen(this);
+        splashScreen = SplashScreen.installSplashScreen(this);
 
         // need to activate preferences before super.onCreate to avoid "requestFeature() must be called before adding content" exception
         loadConfig();
@@ -154,7 +158,7 @@ public class CordovaActivity extends AppCompatActivity {
         cordovaInterface.onCordovaInit(appView.getPluginManager());
 
         // Setup the splash screen based on preference settings
-//        cordovaInterface.pluginManager.postMessage("setupSplashScreen", splashScreen);
+        cordovaInterface.pluginManager.postMessage("setupSplashScreen", splashScreen);
 
         // Wire the hardware volume controls to control media if desired.
         String volumePref = preferences.getString("DefaultVolumeStream", "");

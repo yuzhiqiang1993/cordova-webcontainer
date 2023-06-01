@@ -106,7 +106,7 @@ public class CordovaDialogsHelper {
      * Tell the client to display a prompt dialog to the user.
      * If the client returns true, WebView will assume that the client will
      * handle the prompt dialog and call the appropriate JsPromptResult method.
-     * <p>
+     *
      * Since we are hacking prompts for our own purposes, we should not be using them for
      * this purpose, perhaps we should hack console.log to do this instead!
      */

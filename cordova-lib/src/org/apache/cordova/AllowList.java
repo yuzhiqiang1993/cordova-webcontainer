@@ -28,77 +28,8 @@ import java.util.regex.Pattern;
 
 public class AllowList {
     public static final String TAG = "CordovaAllowList";
+
     private ArrayList<URLPattern> allowList;
-
-    public AllowList() {
-        this.allowList = new ArrayList<URLPattern>();
-    }
-
-    /* Match patterns (from http://developer.chrome.com/extensions/match_patterns.html)
-     *
-     * <url-pattern> := <scheme>://<host><path>
-     * <scheme> := '*' | 'http' | 'https' | 'file' | 'ftp' | 'chrome-extension'
-     * <host> := '*' | '*.' <any char except '/' and '*'>+
-     * <path> := '/' <any chars>
-     *
-     * We extend this to explicitly allow a port attached to the host, and we allow
-     * the scheme to be omitted for backwards compatibility. (Also host is not required
-     * to begin with a "*" or "*.".)
-     */
-    public void addAllowListEntry(String origin, boolean subdomains) {
-        if (allowList != null) {
-            try {
-                // Unlimited access to network resources
-                if (origin.compareTo("*") == 0) {
-                    LOG.d(TAG, "Unlimited access to network resources");
-                    allowList = null;
-                } else { // specific access
-                    Pattern parts = Pattern.compile("^((\\*|[A-Za-z-]+):(//)?)?(\\*|((\\*\\.)?[^*/:]+))?(:(\\d+))?(/.*)?");
-                    Matcher m = parts.matcher(origin);
-                    if (m.matches()) {
-                        String scheme = m.group(2);
-                        String host = m.group(4);
-                        // Special case for two urls which are allowed to have empty hosts
-                        if (("file".equals(scheme) || "content".equals(scheme)) && host == null)
-                            host = "*";
-                        String port = m.group(8);
-                        String path = m.group(9);
-                        if (scheme == null) {
-                            // XXX making it stupid friendly for people who forget to include protocol/SSL
-                            allowList.add(new URLPattern("http", host, port, path));
-                            allowList.add(new URLPattern("https", host, port, path));
-                        } else {
-                            allowList.add(new URLPattern(scheme, host, port, path));
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                LOG.d(TAG, "Failed to add origin %s", origin);
-            }
-        }
-    }
-
-    /**
-     * Determine if URL is in approved list of URLs to load.
-     *
-     * @param uri
-     * @return true if wide open or allow listed
-     */
-    public boolean isUrlAllowListed(String uri) {
-        // If there is no allowList, then it's wide open
-        if (allowList == null) return true;
-
-        Uri parsedUri = Uri.parse(uri);
-        // Look for match in allow list
-        Iterator<URLPattern> pit = allowList.iterator();
-        while (pit.hasNext()) {
-            URLPattern p = pit.next();
-            if (p.matches(parsedUri)) {
-                return true;
-            }
-        }
-        return false;
-    }
 
     private static class URLPattern {
         public Pattern scheme;
@@ -161,6 +92,77 @@ public class AllowList {
                 return false;
             }
         }
+    }
+
+    public AllowList() {
+        this.allowList = new ArrayList<URLPattern>();
+    }
+
+    /* Match patterns (from http://developer.chrome.com/extensions/match_patterns.html)
+     *
+     * <url-pattern> := <scheme>://<host><path>
+     * <scheme> := '*' | 'http' | 'https' | 'file' | 'ftp' | 'chrome-extension'
+     * <host> := '*' | '*.' <any char except '/' and '*'>+
+     * <path> := '/' <any chars>
+     *
+     * We extend this to explicitly allow a port attached to the host, and we allow
+     * the scheme to be omitted for backwards compatibility. (Also host is not required
+     * to begin with a "*" or "*.".)
+     */
+    public void addAllowListEntry(String origin, boolean subdomains) {
+        if (allowList != null) {
+            try {
+                // Unlimited access to network resources
+                if (origin.compareTo("*") == 0) {
+                    LOG.d(TAG, "Unlimited access to network resources");
+                    allowList = null;
+                } else { // specific access
+                    Pattern parts = Pattern.compile("^((\\*|[A-Za-z-]+):(//)?)?(\\*|((\\*\\.)?[^*/:]+))?(:(\\d+))?(/.*)?");
+                    Matcher m = parts.matcher(origin);
+                    if (m.matches()) {
+                        String scheme = m.group(2);
+                        String host = m.group(4);
+                        // Special case for two urls which are allowed to have empty hosts
+                        if (("file".equals(scheme) || "content".equals(scheme)) && host == null)
+                            host = "*";
+                        String port = m.group(8);
+                        String path = m.group(9);
+                        if (scheme == null) {
+                            // XXX making it stupid friendly for people who forget to include protocol/SSL
+                            allowList.add(new URLPattern("http", host, port, path));
+                            allowList.add(new URLPattern("https", host, port, path));
+                        } else {
+                            allowList.add(new URLPattern(scheme, host, port, path));
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                LOG.d(TAG, "Failed to add origin %s", origin);
+            }
+        }
+    }
+
+
+    /**
+     * Determine if URL is in approved list of URLs to load.
+     *
+     * @param uri
+     * @return true if wide open or allow listed
+     */
+    public boolean isUrlAllowListed(String uri) {
+        // If there is no allowList, then it's wide open
+        if (allowList == null) return true;
+
+        Uri parsedUri = Uri.parse(uri);
+        // Look for match in allow list
+        Iterator<URLPattern> pit = allowList.iterator();
+        while (pit.hasNext()) {
+            URLPattern p = pit.next();
+            if (p.matches(parsedUri)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

@@ -49,8 +49,6 @@ public class BuildHelper {
     public static Object getBuildConfigValue(Context ctx, String key) {
         try {
             String packageName = ctx.getApplicationInfo().packageName;
-            /*这里的本意是想拿包名然后反射获取BuildCinfig 源码这样写如果activity不是直接在包名下，中间多了目录结构的话会导致获取失败*/
-//            Class<?> clazz = Class.forName(ctx.getClass().getPackage().getName() + ".BuildConfig");
             Class<?> clazz = Class.forName(packageName + ".BuildConfig");
             Field field = clazz.getField(key);
             return field.get(null);
@@ -58,7 +56,7 @@ public class BuildHelper {
             LOG.d(TAG, "Unable to get the BuildConfig, is this built with ANT?");
             e.printStackTrace();
         } catch (NoSuchFieldException e) {
-            LOG.d(TAG, key + " is not a valid field. Check your build.gradle.kts");
+            LOG.d(TAG, key + " is not a valid field. Check your build.gradle");
         } catch (IllegalAccessException e) {
             LOG.d(TAG, "Illegal Access Exception: Let's print a stack trace.");
             e.printStackTrace();

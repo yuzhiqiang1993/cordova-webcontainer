@@ -21,9 +21,10 @@ package org.apache.cordova;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Debug;
+import android.webkit.RenderProcessGoneDetail;
+import android.webkit.WebView;
 
 import org.apache.cordova.customer.constant.PluginMessageId;
 import org.apache.cordova.customer.data.PlugnExecute;
@@ -152,7 +153,6 @@ public class PluginManager {
             if (duration > SLOW_EXEC_WARNING_THRESHOLD) {
                 LOG.w(TAG, "THREAD WARNING: exec() call to " + service + "." + action + " blocked the main thread for " + duration + "ms. Plugin should use CordovaInterface.getThreadPool().");
             }
-
             if (!wasValidAction) {
                 PluginResult cr = new PluginResult(PluginResult.Status.INVALID_ACTION);
                 callbackContext.sendPluginResult(cr);
@@ -201,7 +201,18 @@ public class PluginManager {
      * @param className The plugin class name
      */
     public void addService(String service, String className) {
-        PluginEntry entry = new PluginEntry(service, className, false);
+        addService(service, className, false);
+    }
+
+    /**
+     * Add a plugin class that implements a service to the service entry table.
+     *
+     * @param service   The service name
+     * @param className The plugin class name
+     * @param onload    If true, the plugin will be instantiated immediately
+     */
+    public void addService(String service, String className, boolean onload) {
+        PluginEntry entry = new PluginEntry(service, className, onload);
         this.addService(entry);
     }
 
@@ -339,22 +350,11 @@ public class PluginManager {
     public Object postMessage(String id, Object data) {
         LOG.d(TAG, "postMessage: " + id);
         synchronized (this.pluginMap) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                this.pluginMap.forEach((s, plugin) -> {
-                    if (plugin != null) {
-                        plugin.onMessage(id, data);
-                    }
-                });
-            } else {
-                for (CordovaPlugin plugin : this.pluginMap.values()) {
-                    if (plugin != null) {
-                        Object obj = plugin.onMessage(id, data);
-                        if (obj != null) {
-                            return obj;
-                        }
-                    }
+            this.pluginMap.forEach((s, plugin) -> {
+                if (plugin != null) {
+                    plugin.onMessage(id, data);
                 }
-            }
+            });
         }
         return ctx.onMessage(id, data);
     }
@@ -615,5 +615,30 @@ public class PluginManager {
             }
         }
         return handlers;
+    }
+
+    /**
+     * Called when the WebView's render process has exited.
+     * <p>
+     * See https://developer.android.com/reference/android/webkit/WebViewClient#onRenderProcessGone(android.webkit.WebView,%20android.webkit.RenderProcessGoneDetail)
+     *
+     * @return true if the host application handled the situation that process has exited,
+     * otherwise, application will crash if render process crashed, or be killed
+     * if render process was killed by the system.
+     */
+    public boolean onRenderProcessGone(final WebView view, RenderProcessGoneDetail detail) {
+        boolean result = false;
+        synchronized (this.entryMap) {
+            for (PluginEntry entry : this.entryMap.values()) {
+                CordovaPlugin plugin = pluginMap.get(entry.service);
+                if (plugin != null) {
+                    if (plugin.onRenderProcessGone(view, detail)) {
+                        result = true;
+                    }
+                }
+            }
+        }
+
+        return result;
     }
 }

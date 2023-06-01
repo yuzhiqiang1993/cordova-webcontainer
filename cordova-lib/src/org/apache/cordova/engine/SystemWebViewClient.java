@@ -28,6 +28,7 @@ import android.net.http.SslError;
 import android.webkit.ClientCertRequest;
 import android.webkit.HttpAuthHandler;
 import android.webkit.MimeTypeMap;
+import android.webkit.RenderProcessGoneDetail;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -61,12 +62,13 @@ public class SystemWebViewClient extends WebViewClient {
     private static final String TAG = "SystemWebViewClient";
     protected final SystemWebViewEngine parentEngine;
     private final WebViewAssetLoader assetLoader;
+    boolean isCurrentlyLoading;
+    private boolean doClearHistory = false;
+
     /**
      * The authorization tokens.
      */
     private final Hashtable<String, AuthenticationToken> authenticationTokens = new Hashtable<String, AuthenticationToken>();
-    boolean isCurrentlyLoading;
-    private boolean doClearHistory = false;
 
     public SystemWebViewClient(SystemWebViewEngine parentEngine) {
         this.parentEngine = parentEngine;
@@ -122,36 +124,6 @@ public class SystemWebViewClient extends WebViewClient {
         return "content".equals(uri.getScheme());
     }
 
-    private static boolean needsSpecialsInAssetUrlFix(Uri uri) {
-        if (CordovaResourceApi.getUriType(uri) != CordovaResourceApi.URI_TYPE_ASSET) {
-            return false;
-        }
-        if (uri.getQuery() != null || uri.getFragment() != null) {
-            return true;
-        }
-
-        if (!uri.toString().contains("%")) {
-            return false;
-        }
-
-        return false;
-    }
-
-
-    /**
-     * Give the host application a chance to take over the control when a new url
-     * is about to be loaded in the current WebView.
-     *
-     * @param view The WebView that is initiating the callback.
-     * @param url  The url to be loaded.
-     * @return true to override, false for default behavior
-     */
-    @Override
-    @SuppressWarnings("deprecation")
-    public boolean shouldOverrideUrlLoading(WebView view, String url) {
-        return parentEngine.client.onNavigationAttempt(url);
-    }
-
     /**
      * On received http auth request.
      * The method reacts on all registered authentication tokens. There is one and only one authentication token for any host + realm combination
@@ -196,6 +168,35 @@ public class SystemWebViewClient extends WebViewClient {
 
         // By default pass to WebViewClient
         super.onReceivedClientCertRequest(view, request);
+    }
+
+    private static boolean needsSpecialsInAssetUrlFix(Uri uri) {
+        if (CordovaResourceApi.getUriType(uri) != CordovaResourceApi.URI_TYPE_ASSET) {
+            return false;
+        }
+        if (uri.getQuery() != null || uri.getFragment() != null) {
+            return true;
+        }
+
+        if (!uri.toString().contains("%")) {
+            return false;
+        }
+
+        return false;
+    }
+
+    /**
+     * Give the host application a chance to take over the control when a new url
+     * is about to be loaded in the current WebView.
+     *
+     * @param view The WebView that is initiating the callback.
+     * @param url  The url to be loaded.
+     * @return true to override, false for default behavior
+     */
+    @Override
+    @SuppressWarnings("deprecation")
+    public boolean shouldOverrideUrlLoading(WebView view, String url) {
+        return parentEngine.client.onNavigationAttempt(url);
     }
 
     /**
@@ -246,6 +247,24 @@ public class SystemWebViewClient extends WebViewClient {
 
     }
 
+
+    /**
+     * Sets the authentication token.
+     *
+     * @param authenticationToken
+     * @param host
+     * @param realm
+     */
+    public void setAuthenticationToken(AuthenticationToken authenticationToken, String host, String realm) {
+        if (host == null) {
+            host = "";
+        }
+        if (realm == null) {
+            realm = "";
+        }
+        this.authenticationTokens.put(host.concat(realm), authenticationToken);
+    }
+
     /**
      * Report an error to the host application. These errors are unrecoverable (i.e. the main resource is unavailable).
      * The errorCode parameter corresponds to one of the ERROR_* constants.
@@ -286,9 +305,9 @@ public class SystemWebViewClient extends WebViewClient {
      * Note that the decision may be retained for use in response to future SSL errors.
      * The default behavior is to cancel the load.
      *
-     * @param view    The WebView that is initiating the callback.
-     * @param handler An SslErrorHandler object that will handle the user's response.
-     * @param error   The SSL error object.
+     * @param view          The WebView that is initiating the callback.
+     * @param handler       An SslErrorHandler object that will handle the user's response.
+     * @param error         The SSL error object.
      */
     @Override
     public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
@@ -310,69 +329,6 @@ public class SystemWebViewClient extends WebViewClient {
             // When it doubt, lock it out!
             super.onReceivedSslError(view, handler, error);
         }
-    }
-
-    /**
-     * Sets the authentication token.
-     *
-     * @param authenticationToken
-     * @param host
-     * @param realm
-     */
-    public void setAuthenticationToken(AuthenticationToken authenticationToken, String host, String realm) {
-        if (host == null) {
-            host = "";
-        }
-        if (realm == null) {
-            realm = "";
-        }
-        this.authenticationTokens.put(host.concat(realm), authenticationToken);
-    }
-
-    /**
-     * Removes the authentication token.
-     *
-     * @param host
-     * @param realm
-     * @return the authentication token or null if did not exist
-     */
-    public AuthenticationToken removeAuthenticationToken(String host, String realm) {
-        return this.authenticationTokens.remove(host.concat(realm));
-    }
-
-    /**
-     * Gets the authentication token.
-     * <p>
-     * In order it tries:
-     * 1- host + realm
-     * 2- host
-     * 3- realm
-     * 4- no host, no realm
-     *
-     * @param host
-     * @param realm
-     * @return the authentication token
-     */
-    public AuthenticationToken getAuthenticationToken(String host, String realm) {
-        AuthenticationToken token = null;
-        token = this.authenticationTokens.get(host.concat(realm));
-
-        if (token == null) {
-            // try with just the host
-            token = this.authenticationTokens.get(host);
-
-            // Try the realm
-            if (token == null) {
-                token = this.authenticationTokens.get(realm);
-            }
-
-            // if no host found, just query for default
-            if (token == null) {
-                token = this.authenticationTokens.get("");
-            }
-        }
-
-        return token;
     }
 
     /**
@@ -414,8 +370,66 @@ public class SystemWebViewClient extends WebViewClient {
         }
     }
 
+    /**
+     * Removes the authentication token.
+     *
+     * @param host
+     * @param realm
+     * @return the authentication token or null if did not exist
+     */
+    public AuthenticationToken removeAuthenticationToken(String host, String realm) {
+        return this.authenticationTokens.remove(host.concat(realm));
+    }
+
+    /**
+     * Gets the authentication token.
+     *
+     * In order it tries:
+     * 1- host + realm
+     * 2- host
+     * 3- realm
+     * 4- no host, no realm
+     *
+     * @param host
+     * @param realm
+     *
+     * @return the authentication token
+     */
+    public AuthenticationToken getAuthenticationToken(String host, String realm) {
+        AuthenticationToken token = null;
+        token = this.authenticationTokens.get(host.concat(realm));
+
+        if (token == null) {
+            // try with just the host
+            token = this.authenticationTokens.get(host);
+
+            // Try the realm
+            if (token == null) {
+                token = this.authenticationTokens.get(realm);
+            }
+
+            // if no host found, just query for default
+            if (token == null) {
+                token = this.authenticationTokens.get("");
+            }
+        }
+
+        return token;
+    }
+
     @Override
     public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
         return this.assetLoader.shouldInterceptRequest(request.getUrl());
+    }
+
+    @Override
+    public boolean onRenderProcessGone(final WebView view, RenderProcessGoneDetail detail) {
+        // Check if there is some plugin which can handle this event
+        PluginManager pluginManager = this.parentEngine.pluginManager;
+        if (pluginManager != null && pluginManager.onRenderProcessGone(view, detail)) {
+            return true;
+        }
+
+        return super.onRenderProcessGone(view, detail);
     }
 }

@@ -35,10 +35,11 @@ import org.apache.cordova.customer.listener.PageScrollChangedListener;
  * Custom WebView subclass that enables us to capture events needed for Cordova.
  */
 public class SystemWebView extends WebView implements CordovaWebViewEngine.EngineView {
-    SystemWebChromeClient chromeClient;
     private SystemWebViewClient viewClient;
+    SystemWebChromeClient chromeClient;
     private SystemWebViewEngine parentEngine;
     private CordovaInterface cordova;
+    /*滚动监听器*/
     private PageScrollChangedListener pageScrollChangedListener = null;
 
     public SystemWebView(Context context) {

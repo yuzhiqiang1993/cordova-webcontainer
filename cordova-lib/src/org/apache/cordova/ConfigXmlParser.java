@@ -31,18 +31,16 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ConfigXmlParser {
+    private static final String DEFAULT_CONTENT_SRC = "index.html";
     private static final String TAG = "ConfigXmlParser";
-
     private static final String SCHEME_HTTP = "http";
     private static final String SCHEME_HTTPS = "https";
     private static final String DEFAULT_HOSTNAME = "localhost";
-    private final CordovaPreferences prefs = new CordovaPreferences();
-    private final ArrayList<PluginEntry> pluginEntries = new ArrayList<PluginEntry>(20);
-    boolean insideFeature = false;
-    String service = "", pluginClass = "", paramType = "";
-    boolean onload = false;
+
     private String launchUrl;
     private String contentSrc;
+    private final CordovaPreferences prefs = new CordovaPreferences();
+    private final ArrayList<PluginEntry> pluginEntries = new ArrayList<PluginEntry>(20);
 
     public CordovaPreferences getPreferences() {
         return prefs;
@@ -91,6 +89,10 @@ public class ConfigXmlParser {
         parse(action.getResources().getXml(id));
     }
 
+    boolean insideFeature = false;
+    String service = "", pluginClass = "", paramType = "";
+    boolean onload = false;
+
     public void parse(XmlPullParser xml) {
         int eventType = -1;
 
@@ -107,6 +109,18 @@ public class ConfigXmlParser {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+
+        onPostParse();
+    }
+
+    private void onPostParse() {
+        // After parsing, if contentSrc is still null, it signals
+        // that <content> tag was completely missing. In this case,
+        // default it.
+        // https://github.com/apache/cordova-android/issues/1432
+        if (contentSrc == null) {
+            contentSrc = DEFAULT_CONTENT_SRC;
         }
     }
 
@@ -135,7 +149,7 @@ public class ConfigXmlParser {
                 contentSrc = src;
             } else {
                 // Default
-                contentSrc = "index.html";
+                contentSrc = DEFAULT_CONTENT_SRC;
             }
         }
     }

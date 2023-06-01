@@ -33,9 +33,7 @@ public interface CordovaWebViewEngine {
               NativeToJsMessageQueue nativeToJsMessageQueue);
 
     CordovaWebView getCordovaWebView();
-
     ICordovaCookieManager getCookieManager();
-
     View getView();
 
     void loadUrl(String url, boolean clearNavigationStack);
@@ -61,19 +59,13 @@ public interface CordovaWebViewEngine {
      */
     boolean goBack();
 
-    /**
-     * Pauses / resumes the WebView's event loop.
-     */
+    /** Pauses / resumes the WebView's event loop. */
     void setPaused(boolean value);
 
-    /**
-     * Clean up all resources associated with the WebView.
-     */
+    /** Clean up all resources associated with the WebView. */
     void destroy();
 
-    /**
-     * Add the evaulate Javascript method
-     **/
+    /** Add the evaulate Javascript method **/
     void evaluateJavascript(String js, ValueCallback<String> callback);
 
     /**

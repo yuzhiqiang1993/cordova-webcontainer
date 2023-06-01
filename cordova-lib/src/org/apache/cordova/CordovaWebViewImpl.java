@@ -50,29 +50,30 @@ import java.util.Set;
 public class CordovaWebViewImpl implements CordovaWebView {
 
     public static final String TAG = "CordovaWebViewImpl";
-    protected final CordovaWebViewEngine engine;
-    private final EngineClient engineClient = new EngineClient();
-    private final Set<Integer> boundKeyCodes = new HashSet<Integer>();
+
     // The URL passed to loadUrl(), not necessarily the URL of the current page.
     String loadedUrl;
-    private PluginManager pluginManager;
+
+    protected final CordovaWebViewEngine engine;
     private CordovaInterface cordova;
+
     // Flag to track that a loadUrl timeout occurred
     private int loadUrlTimeout = 0;
+
     private CordovaResourceApi resourceApi;
     private CordovaPreferences preferences;
     private CoreAndroid appPlugin;
     private NativeToJsMessageQueue nativeToJsMessageQueue;
+    private final EngineClient engineClient = new EngineClient();
     private boolean hasPausedEver;
+    private final Set<Integer> boundKeyCodes = new HashSet<Integer>();
+
     /**
      * custom view created by the browser (a video player for example)
      */
     private View mCustomView;
     private WebChromeClient.CustomViewCallback mCustomViewCallback;
-
-    public CordovaWebViewImpl(CordovaWebViewEngine cordovaWebViewEngine) {
-        this.engine = cordovaWebViewEngine;
-    }
+    private PluginManager pluginManager;
 
     public static CordovaWebViewEngine createEngine(Context context, CordovaPreferences preferences) {
         String className = preferences.getString("webview", SystemWebViewEngine.class.getCanonicalName());
@@ -83,6 +84,10 @@ public class CordovaWebViewImpl implements CordovaWebView {
         } catch (Exception e) {
             throw new RuntimeException("Failed to create webview. ", e);
         }
+    }
+
+    public CordovaWebViewImpl(CordovaWebViewEngine cordovaWebViewEngine) {
+        this.engine = cordovaWebViewEngine;
     }
 
     // Convenience method for when creating programmatically (not from Config.xml).
@@ -111,7 +116,7 @@ public class CordovaWebViewImpl implements CordovaWebView {
         // This isn't enforced by the compiler, so assert here.
         assert engine.getView() instanceof CordovaWebViewEngine.EngineView;
 
-        pluginManager.addService(CoreAndroid.PLUGIN_NAME, "org.apache.cordova.CoreAndroid");
+        pluginManager.addService(CoreAndroid.PLUGIN_NAME, "org.apache.cordova.CoreAndroid", true);
         pluginManager.init();
     }
 
@@ -260,6 +265,26 @@ public class CordovaWebViewImpl implements CordovaWebView {
             } else {
                 LOG.e(TAG, "Error loading url " + url, e);
             }
+        }
+    }
+
+    private static class WrapperView extends FrameLayout {
+
+        private final CordovaWebViewEngine engine;
+
+        public WrapperView(Context context, CordovaWebViewEngine engine) {
+            super(context);
+            this.engine = engine;
+        }
+
+        @Override
+        public boolean dispatchKeyEvent(KeyEvent event) {
+            boolean ret = engine.getView().dispatchKeyEvent(event);
+            if (!ret) {
+                // If the engine didn't handle the event, handle it normally.
+                ret = super.dispatchKeyEvent(event);
+            }
+            return ret;
         }
     }
 
@@ -526,26 +551,6 @@ public class CordovaWebViewImpl implements CordovaWebView {
         hideCustomView();
     }
 
-    private static class WrapperView extends FrameLayout {
-
-        private final CordovaWebViewEngine engine;
-
-        public WrapperView(Context context, CordovaWebViewEngine engine) {
-            super(context);
-            this.engine = engine;
-        }
-
-        @Override
-        public boolean dispatchKeyEvent(KeyEvent event) {
-            boolean ret = engine.getView().dispatchKeyEvent(event);
-            if (!ret) {
-                // If the engine didn't handle the event, handle it normally.
-                ret = super.dispatchKeyEvent(event);
-            }
-            return ret;
-        }
-    }
-
     protected class EngineClient implements CordovaWebViewEngine.Client {
         @Override
         public void clearLoadTimeoutTimer() {
@@ -559,7 +564,6 @@ public class CordovaWebViewImpl implements CordovaWebView {
             pluginManager.onReset();
             pluginManager.postMessage(PluginMessageId.onPageStarted, newUrl);
         }
-
 
         @Override
         public void onReceivedError(int errorCode, String description, String failingUrl) {

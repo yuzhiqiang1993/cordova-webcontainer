@@ -176,7 +176,7 @@ public class CordovaBridge {
                 jsMessageQueue.setBridgeMode(bridgeMode);
                 // Tell JS the bridge secret.
                 int secret = generateBridgeSecret();
-                return "" + secret;
+                return String.valueOf(secret);
             } else {
                 LOG.e(LOG_TAG, "gap_init called from restricted origin: " + origin);
             }

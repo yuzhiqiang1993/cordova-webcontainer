@@ -25,32 +25,39 @@ import java.util.LinkedList;
  * Holds the list of messages to be sent to the WebView.
  */
 public class NativeToJsMessageQueue {
-    // Disable sending back native->JS messages during an exec() when the active
-    // exec() is asynchronous. Set this to true when running bridge benchmarks.
-    static final boolean DISABLE_EXEC_CHAINING = false;
     private static final String LOG_TAG = "JsMessageQueue";
+
     // Set this to true to force plugin results to be encoding as
     // JS instead of the custom format (useful for benchmarking).
     // Doesn't work for multipart messages.
     private static final boolean FORCE_ENCODE_USING_EVAL = false;
+
+    // Disable sending back native->JS messages during an exec() when the active
+    // exec() is asynchronous. Set this to true when running bridge benchmarks.
+    static final boolean DISABLE_EXEC_CHAINING = false;
+
     // A hopefully reasonable upper limit of how much combined payload data
     // to send to the JavaScript in one shot.
     // This currently only chops up on message boundaries.
     // It may be useful to split and reassemble response messages someday.
     private static final int COMBINED_RESPONSE_CUTOFF = 16 * 1024 * 1024;
-    /**
-     * The list of JavaScript statements to be sent to JavaScript.
-     */
-    private final LinkedList<JsMessage> queue = new LinkedList<JsMessage>();
-    /**
-     * The array of listeners that can be used to send messages to JS.
-     */
-    private final ArrayList<BridgeMode> bridgeModes = new ArrayList<BridgeMode>();
+
     /**
      * When true, the active listener is not fired upon enqueue. When set to false,
      * the active listener will be fired if the queue is non-empty.
      */
     private boolean paused;
+
+    /**
+     * The list of JavaScript statements to be sent to JavaScript.
+     */
+    private final LinkedList<JsMessage> queue = new LinkedList<JsMessage>();
+
+    /**
+     * The array of listeners that can be used to send messages to JS.
+     */
+    private final ArrayList<BridgeMode> bridgeModes = new ArrayList<BridgeMode>();
+
     /**
      * When null, the bridge is disabled. This occurs during page transitions.
      * When disabled, all callbacks are dropped since they are assumed to be
@@ -118,10 +125,10 @@ public class NativeToJsMessageQueue {
 
     /**
      * Combines and returns queued messages combined into a single string.
-     * <p>
+     *
      * Combines as many messages as possible, without exceeding
      * COMBINED_RESPONSE_CUTOFF in case of multiple response messages.
-     * <p>
+     *
      * Returns null if the queue is empty.
      */
     public String popAndEncode(boolean fromOnlineEvent) {
@@ -322,6 +329,12 @@ public class NativeToJsMessageQueue {
         private boolean online;
         private boolean ignoreNextFlush;
 
+        public interface OnlineEventsBridgeModeDelegate {
+            void setNetworkAvailable(boolean value);
+
+            void runOnUiThread(Runnable r);
+        }
+
         public OnlineEventsBridgeMode(OnlineEventsBridgeModeDelegate delegate) {
             this.delegate = delegate;
         }
@@ -349,19 +362,12 @@ public class NativeToJsMessageQueue {
                 }
             });
         }
-
         // Track when online/offline events are fired so that we don't fire excess events.
         @Override
         public void notifyOfFlush(final NativeToJsMessageQueue queue, boolean fromOnlineEvent) {
             if (fromOnlineEvent && !ignoreNextFlush) {
                 online = !online;
             }
-        }
-
-        public interface OnlineEventsBridgeModeDelegate {
-            void setNetworkAvailable(boolean value);
-
-            void runOnUiThread(Runnable r);
         }
     }
 
@@ -391,10 +397,10 @@ public class NativeToJsMessageQueue {
     }
 
 
+
     private static class JsMessage {
         final String jsPayloadOrCallbackId;
         final PluginResult pluginResult;
-
         JsMessage(String js) {
             if (js == null) {
                 throw new NullPointerException();
@@ -402,7 +408,6 @@ public class NativeToJsMessageQueue {
             jsPayloadOrCallbackId = js;
             pluginResult = null;
         }
-
         JsMessage(PluginResult pluginResult, String callbackId) {
             if (callbackId == null || pluginResult == null) {
                 throw new NullPointerException();

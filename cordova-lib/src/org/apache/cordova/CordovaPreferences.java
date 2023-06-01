@@ -38,15 +38,15 @@ public class CordovaPreferences {
     }
 
     public void set(String name, boolean value) {
-        set(name, "" + value);
+        set(name, String.valueOf(value));
     }
 
     public void set(String name, int value) {
-        set(name, "" + value);
+        set(name, String.valueOf(value));
     }
 
     public void set(String name, double value) {
-        set(name, "" + value);
+        set(name, String.valueOf(value));
     }
 
     public Map<String, String> getAll() {
