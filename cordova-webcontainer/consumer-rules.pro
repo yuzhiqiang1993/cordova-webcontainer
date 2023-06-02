@@ -4,6 +4,7 @@
 -keep enum org.apache.cordova.**{*;}
 
 
+
 #-keep class com.yzq.cordova_webcontainer.CordovaWebContainer { *; }
 #
 #-keep class com.yzq.cordova_webcontainer.CordovaWebContainer.**{*;}

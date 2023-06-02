@@ -26,6 +26,6 @@ dependencies {
 
     implementation("androidx.core:core-ktx:1.10.1")
     implementation("androidx.appcompat:appcompat:1.6.1")
-    api("com.xeonyu:cordova-lib:11.0.3")
+    api("com.xeonyu:cordova-lib:12.0.0")
 //    api(project(":cordova-lib"))
 }
