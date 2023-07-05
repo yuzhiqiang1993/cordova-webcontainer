@@ -1,128 +1,193 @@
-# 代码混淆压缩比，在0~7之间，默认为5，一般不做修改
--optimizationpasses 5
+##libraryjars  声明lib jar文件
+##dontwarn 不提示警告 dontwarn是一个和keep可以说是形影不离,尤其是处理引入的library时.
+##引入的library可能存在一些无法找到的引用和其他问题,在build时可能会发出警告,
+##如果我们不进行处理,通常会导致build中止.
+##因此为了保证build继续,我们需要使用dontwarn处理这些我们无法解决的library的警告.
+##dontnote:指定不去输出打印该类产生的错误或遗漏
+##keep 保留类和类中的成员，防止被混淆或移除
+##keepnames 保留类和类中的成员，防止被混淆，成员没有被引用会被移除
+##keepclassmembers 只保留类中的成员，防止被混淆或移除
+##keepclassmembernames 只保留类中的成员，防止被混淆，成员没有引用会被移除
+##keepclasseswithmembers 保留类和类中的成员，防止被混淆或移除，保留指明的成员
+##keepclasseswithmembernames 保留类和类中的成员，防止被混淆，保留指明的成员，成员没有引用会被移除
+#
+#
+##----------------------基本指令区-----------------
+## 设置混淆的压缩比率 0 ~ 7
+#-optimizationpasses 7
+##将所有类移动到默认（根）包中,默认是不开启的
+#-repackageclasses
+## 混淆后类名都为小写   Aa aA
+#-dontusemixedcaseclassnames
+## 指定不去忽略非公共库的类
+#-dontskipnonpubliclibraryclasses
+## 不优化输入的类文件
+#-dontoptimize
+## 不做预校验的操作
+#-dontpreverify
+## 混淆时不记录日志
+#-verbose
+## 保留代码行号，方便异常信息的追踪
+#-keepattributes SourceFile,LineNumberTable
+## 混淆采用的算法.
+#-optimizations !code/simplification/arithmetic,!field/*,!class/merging/*
+#
+## dump文件列出apk包内所有class的内部结构
+#-dump class_files.txt
+## seeds.txt文件列出未混淆的类和成员
+#-printseeds seeds.txt
+## usage.txt文件列出从apk中删除的代码
+#-printusage unused.txt
+## mapping文件列出混淆前后的映射
+#-printmapping mapping.txt
+## 忽略警告 不加的话某些情况下打包会报错中断
+#-ignorewarnings
+#
+#
+##----------------------Android通用-----------------
+##
+### 避免混淆Android基本组件，下面是兼容性比较高的规则
+#-keep public class * extends android.app.Activity
+#-keep public class * extends android.app.Fragment
+#-keep public class * extends android.app.Application
+#-keep public class * extends android.app.Service
+#-keep public class * extends android.content.BroadcastReceiver
+#-keep public class * extends android.content.ContentProvider
+#-keep public class * extends android.app.backup.BackupAgentHelper
+#-keep public class * extends android.preference.Preference
+#-keep public class * extends android.view.View
+##
+##
+## 保留support下的所有类及其内部类
+#-keep class android.support.** {*;}
+#-keep interface android.support.** {*;}
+#-keep public class * extends android.support.v4.**
+#-keep public class * extends android.support.v7.**
+#-keep public class * extends android.support.annotation.**
+#-dontwarn android.support.**
+#
+## 保留androidx下的所有类及其内部类
+#-keep class androidx.** {*;}
+#-keep public class * extends androidx.**
+#-keep interface androidx.** {*;}
+#-keep class com.google.android.material.** {*;}
+#-dontwarn androidx.**
+#-dontwarn com.google.android.material.**
+#-dontnote com.google.android.material.**
+#
+## 保持Activity中与View相关方法不被混淆
+#-keepclassmembers class * extends android.app.Activity{
+#        public void *(android.view.View);
+#}
+#
+## 避免混淆所有native的方法,涉及到C、C++
+#-keepclasseswithmembernames class * {
+#        native <methods>;
+#}
+#
+## 避免混淆自定义控件类的get/set方法和构造函数
+#-keep public class * extends android.view.View{
+#        *** get*();
+#        void set*(***);
+#        public <init>(android.content.Context);
+#        public <init>(android.content.Context,android.util.AttributeSet);
+#        public <init>(android.content.Context,android.util.AttributeSet,int);
+#}
+#-keepclasseswithmembers class * {
+#        public <init>(android.content.Context, android.util.AttributeSet);
+#        public <init>(android.content.Context, android.util.AttributeSet, int);
+#}
+#
+## 避免混淆枚举类
+#-keepclassmembers enum * {
+#        public static **[] values();
+#        public static ** valueOf(java.lang.String);
+#}
+#
+## 避免混淆序列化类
+## 不混淆Parcelable和它的实现子类，还有Creator成员变量
+#-keep class * implements android.os.Parcelable {
+#        public static final android.os.Parcelable$Creator *;
+#}
+#
+## 不混淆Serializable和它的实现子类、其成员变量
+#-keep public class * implements java.io.Serializable {*;}
+#-keepclassmembers class * implements java.io.Serializable {
+#        static final long serialVersionUID;
+#        private static final java.io.ObjectStreamField[] serialPersistentFields;
+#        private void writeObject(java.io.ObjectOutputStream);
+#        private void readObject(java.io.ObjectInputStream);
+#        java.lang.Object writeReplace();
+#        java.lang.Object readResolve();
+#}
+#
+## 资源ID不被混淆
+#-keep class **.R$* {*;}
+#
+## 回调函数事件不能混淆
+#-keepclassmembers class * {
+#        void *(**On*Event);
+#        void *(**On*Listener);
+#}
+#
+## Webview 相关不混淆
+#-keepclassmembers class * extends android.webkit.WebViewClient {
+#        public void *(android.webkit.WebView, java.lang.String, android.graphics.Bitmap);
+#        public boolean *(android.webkit.WebView, java.lang.String);
+#}
+#-keepclassmembers class * extends android.webkit.WebViewClient {
+#        public void *(android.webkit.WebView, java.lang.String);
+# }
+#
+## 使用GSON、fastjson等框架时，所写的JSON对象类不混淆，否则无法将JSON解析成对应的对象
+#-keepclassmembers class * {
+#         public <init>(org.json.JSONObject);
+#}
+#
+##不混淆泛型
+#-keepattributes Signature
+#
+##避免混淆注解类
+#-keepattributes *Annotation*
+#
+##避免混淆内部类
+#-keepattributes InnerClasses
+#
+##（可选）避免Log打印输出
+##-assumenosideeffects class android.util.Log {
+##        public static *** v(...);
+##        public static *** d(...);
+##        public static *** i(...);
+##        public static *** w(...);
+##        public static *** e(...);
+##}
+#
+#
+#
+##kotlin 相关
+#-dontwarn kotlin.**
+#-keep class kotlin.** { *; }
+#-keep interface kotlin.** { *; }
+#-keepclassmembers class kotlin.Metadata {
+#    public <methods>;
+#}
+#-keepclasseswithmembers @kotlin.Metadata class * { *; }
+#-keepclassmembers class **.WhenMappings {
+#    <fields>;
+#}
+#
+#
+#-keep class kotlinx.** { *; }
+#-keep interface kotlinx.** { *; }
+#-dontwarn kotlinx.**
+#
+#
+#-keep class org.jetbrains.** { *; }
+#-keep interface org.jetbrains.** { *; }
+#-dontwarn org.jetbrains.**
 
-# 混合时不使用大小写混合，混合后的类名为小写
--dontusemixedcaseclassnames
-
-# 指定不去忽略非公共库的类
--dontskipnonpubliclibraryclasses
-
-# 指定不去忽略非公共库的类成员
--dontskipnonpubliclibraryclassmembers
-
-# 不进行优化，建议使用此选项，
--dontoptimize
-
-# 不做预校验，preverify是proguard的四个步骤之一，Android不需要preverify 能够加快混淆速度。
--dontpreverify
-
-# 使我们的项目混淆后产生映射文件包含有类名->混淆后类名的映射关系
--verbose
-
-# 使用printmapping指定映射文件的名称
--printmapping proguardMapping.txt
-
-# 屏蔽警告
--ignorewarnings
-
-# 指定混淆是采用的算法，后面的参数是一个过滤器这个过滤器是谷歌推荐的算法，一般不做更改
--optimizations !code/simplification/cast,!field/*,!class/merging/*
-# 保留Annotation不混淆
--keepattributes *Annotation*
-# 避免混淆泛型
--keepattributes Signature
-# 抛出异常时保留代码行号
--keepattributes SourceFile,LineNumberTable
-#2.默认保留区
-# 保留我们使用的四大组件，自定义的Application等等这些类不被混淆
-# 因为这些子类都有可能被外部调用
--keep public class * extends android.app.Activity
--keep public class * extends android.app.Application
--keep public class * extends android.app.Service
--keep public class * extends android.content.BroadcastReceiver
--keep public class * extends android.content.ContentProvider
--keep public class * extends android.app.backup.BackupAgentHelper
--keep public class * extends android.preference.Preference
--keep public class * extends android.view.View
-# 保留support下的所有类及其内部类
--keep class android.support.** { *; }
--keep interface android.support.** { *; }
--dontwarn android.support.**
-# 保留本地native方法不被混淆
--keepclasseswithmembernames class * {
-    native <methods>;
-}
-# 保留在Activity中的方法参数是view的方法，这样一来我们在layout中写的onClick就不会被影响
--keepclassmembers class * extends android.app.Activity{
-    public void *(android.view.View);
-}
-# 保留枚举类不被混淆
--keepclassmembers enum * {
-    public static **[] values();
-    public static ** valueOf(java.lang.String);
-}
-# 保留我们自定义控件（继承自View）不被混淆
--keep public class * extends android.view.View{
-    *** get*();
-    void set*(***);
-    public <init>(android.content.Context);
-    public <init>(android.content.Context, android.util.AttributeSet);
-    public <init>(android.content.Context, android.util.AttributeSet, int);
-}
--keepclasseswithmembers class * {
-    public <init>(android.content.Context, android.util.AttributeSet);
-    public <init>(android.content.Context, android.util.AttributeSet, int);
-}
-# 保留Parcelable序列化类不被混淆
--keep class * implements android.os.Parcelable {
-  public static final android.os.Parcelable$Creator *;
-}
-# 保留Serializable序列化的类不被混淆
--keepclassmembers class * implements java.io.Serializable {
-    static final long serialVersionUID;
-    private static final java.io.ObjectStreamField[] serialPersistentFields;
-    private void writeObject(java.io.ObjectOutputStream);
-    private void readObject(java.io.ObjectInputStream);
-    java.lang.Object writeReplace();
-    java.lang.Object readResolve();
-}
-#androidx包使用混淆
--keep class com.google.android.material.** {*;}
--keep class androidx.** {*;}
--keep public class * extends androidx.**
--keep interface androidx.** {*;}
--dontwarn com.google.android.material.**
--dontnote com.google.android.material.**
--dontwarn androidx.**
-# 保留R下面的资源
--keep class **.R$* {
- *;
-}
-# 对于带有回调函数的onXXEvent、**On*Listener的，不能被混淆
--keepclassmembers class * {
-    void *(**On*Event);
-    void *(**On*Listener);
-}
-# 避免layout中onclick方法（android:onclick="onClick"）混淆
--keepclassmembers class * extends android.app.Activity{
-    public void *(android.view.View);
-}
-# webview
--keepattributes JavascriptInterface
--keepattributes Annotation
--keepclassmembers class * {
-    @android.webkit.JavascriptInterface <methods>;
-}
-################ ViewBinding & DataBinding ###############
--keepclassmembers class * implements androidx.viewbinding.ViewBinding {
-  public static * inflate(android.view.LayoutInflater);
-  public static * inflate(android.view.LayoutInflater, android.view.ViewGroup, boolean);
-  public static * bind(android.view.View);
-}
 
 
-#Cordova
--keep class org.apache.cordova.**{*;}
--keep interface org.apache.cordova.**{*;}
--keep enum org.apache.cordova.**{*;}
-
+-keep class **.BuildConfig {
+    *;
+}

@@ -1,15 +1,12 @@
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
+    alias(libs.plugins.xeonyu.application)
 }
 
 android {
     namespace = "com.yzq.demo"
-    compileSdk = 33
+
     defaultConfig {
         applicationId = "com.yzq.demo"
-        minSdk = 23
-        targetSdk = 32
         versionCode = 1
         versionName = "1.0"
 
@@ -40,7 +37,7 @@ android {
             signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
-            isDebuggable = false
+            isDebuggable = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -48,27 +45,15 @@ android {
             buildConfigField("boolean", "LOG_DEBUG", "false")
         }
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-    buildFeatures {
-        viewBinding = true
-        buildConfig = true
-    }
-
 }
 
 dependencies {
 
-    implementation("androidx.core:core-ktx:1.10.0")
-    implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.8.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.google.material)
+    implementation(libs.androidx.constraintlayout)
+    implementation(libs.xeonyu.cordova.webcontainer)
 //    implementation(project(":cordova-webcontainer"))
-    implementation("com.xeonyu:cordova-webcontainer:1.0.0")
 
 }

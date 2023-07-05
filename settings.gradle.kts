@@ -3,6 +3,7 @@ pluginManagement {
         google()
         mavenCentral()
         gradlePluginPortal()
+        mavenLocal()
     }
 }
 
@@ -11,9 +12,17 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        mavenLocal()
         /*发布到snapshot仓库时使用*/
         maven {
             url = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
+        }
+    }
+
+    versionCatalogs {
+        create("libs") {
+//            from("com.xeonyu:version-catalog:0.0.4-SNAPSHOT")
+            from("com.xeonyu:version-catalog:0.0.5-SNAPSHOT")
         }
     }
 }

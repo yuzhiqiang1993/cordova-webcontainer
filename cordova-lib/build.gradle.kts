@@ -1,16 +1,10 @@
 plugins {
-    id("com.android.library")
-    id("com.vanniktech.maven.publish")
+    alias(libs.plugins.xeonyu.library)
+    alias(libs.plugins.vanniktechPublish)
 }
 
 android {
     namespace = "org.apache.cordova"
-    compileSdk = 32
-    defaultConfig {
-        minSdk = 23
-        consumerProguardFiles("consumer-rules.pro")
-    }
-
     sourceSets {
         getByName("main") {
             manifest.srcFile("AndroidManifest.xml")
@@ -36,7 +30,8 @@ android {
 }
 
 dependencies {
-    implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("androidx.webkit:webkit:1.6.1")
-    implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.webkit)
+    implementation(libs.androidx.core.splashscreen)
+
 }

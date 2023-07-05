@@ -22,7 +22,6 @@ class CordovaDemoActivity : CordovaActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-//        loadUrl("https://www.baidu.com/")
         loadUrl(launchUrl)
     }
 }
