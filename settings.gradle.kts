@@ -22,7 +22,7 @@ dependencyResolutionManagement {
     versionCatalogs {
         create("libs") {
 //            from("com.xeonyu:version-catalog:0.0.4-SNAPSHOT")
-            from("com.xeonyu:version-catalog:0.0.5-SNAPSHOT")
+            from("com.xeonyu:version-catalog:0.0.5")
         }
     }
 }
