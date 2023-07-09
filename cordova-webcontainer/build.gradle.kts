@@ -12,4 +12,5 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     api(libs.xeonyu.cordova.lib)
+//    api("com.xeonyu.cordova-lib:12.0.2")
 }

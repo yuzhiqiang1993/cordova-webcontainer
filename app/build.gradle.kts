@@ -55,5 +55,6 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation(libs.xeonyu.cordova.webcontainer)
 //    implementation(project(":cordova-webcontainer"))
+//    implementation(project(":cordova-webcontainer"))
 
 }
