@@ -10,8 +10,6 @@ import com.yzq.demo.databinding.ActivityMainBinding
 /**
  * @description 直接使用Webcontainer控件的示例，适用于更加灵活的场景,例如你不想继承指定的Activity
  * @author  yuzhiqiang (zhiqiang.yu.xeon@gmail.com)
- * @date    2023/3/23
- * @time    10:17
  */
 
 class MainActivity : AppCompatActivity() {
@@ -35,8 +33,8 @@ class MainActivity : AppCompatActivity() {
             /*初始化*/
             webContainer.init(this@MainActivity, this@MainActivity)
             /*加载url*/
-            val url = "https://www.baidu.com/"
-            webContainer.loadUrl(url)
+//            val url = "https://www.baidu.com/"
+            webContainer.loadUrl()
 
         }
 

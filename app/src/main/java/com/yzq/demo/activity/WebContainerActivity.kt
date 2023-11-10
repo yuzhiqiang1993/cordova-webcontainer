@@ -22,8 +22,6 @@ import org.apache.cordova.customer.data.PlugnExecute
 /**
  * @description 继承自WebcontainerActivity的使用示例
  * @author  yuzhiqiang (zhiqiang.yu.xeon@gmail.com)
- * @date    2023/3/20
- * @time    13:41
  */
 
 class WebContainerActivity : CordovaWebContainerActivity() {
@@ -47,6 +45,7 @@ class WebContainerActivity : CordovaWebContainerActivity() {
     /*初始化Webcontainer控件*/
     override fun initWebContainer(): CordovaWebContainer {
         with(binding) {
+
             webContainer.run {
                 /**
                  * 初始化
@@ -55,14 +54,6 @@ class WebContainerActivity : CordovaWebContainerActivity() {
                     this@WebContainerActivity,
                     this@WebContainerActivity
                 )
-
-                /*可选拦截请求*/
-                webviewClient.interceptRequest { view, request, response ->
-                    val url = request.url.toString()
-                    Log.i(TAG, "interceptRequest:$url")
-                    return@interceptRequest response
-                }
-
 
                 setWebviewClient(object : CordovaWebviewClient(webViewEngine) {
                     override fun onReceivedSslError(
@@ -74,18 +65,26 @@ class WebContainerActivity : CordovaWebContainerActivity() {
                     }
                 })
 
+                /*可选拦截请求 等同于shouldInterceptRequest 记得用这个*/
+                webContainer.webviewClient.interceptRequest { view, request, response ->
+                    val url = request.url.toString()
+                    Log.i(TAG, "interceptRequest:$url")
+                    return@interceptRequest response
+                }
 
-                /*可选 处理准备load的url*/
+
+                /*可选 处理准备load的url 等同于 shouldOverrideUrlLoading*/
                 webviewClient.overrideUrlLoading { view, request ->
                     Log.i(TAG, "overrideUrlLoading:${request.url}")
                     request.url.toString().let {
-                        if (it.startsWith("kfcknight://")) {
+                        if (it.startsWith("baidu://")) {
                             return@overrideUrlLoading true
                         }
                     }
                     return@overrideUrlLoading false
                 }
 
+                /*js bridge*/
                 val testJs = object : CordovaJsInterface("test") {
                     @JavascriptInterface
                     fun methordA() {
@@ -103,7 +102,7 @@ class WebContainerActivity : CordovaWebContainerActivity() {
                  */
                 addPagePbserver(object : PageObserver {
                     override fun onPageStarted(url: String) {
-                        toolbar.title = "加载中..."
+                        Log.i(TAG, "onPageStarted: $url")
                     }
 
                     override fun onProgressChanged(newProgress: Int) {
@@ -152,8 +151,9 @@ class WebContainerActivity : CordovaWebContainerActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val url = "https://baidu.com/"
-        binding.webContainer.loadUrl(url)
+//        val url = "https://baidu.com/"
+//        binding.webContainer.loadUrl(url)
+        binding.webContainer.loadUrl()
         binding.webContainer.setOnPageScrollChangedListener { xOffset, yOffset, oldxOffset, oldyOffset ->
             Log.i(TAG, "yOffset:$yOffset,oldyOffset:$oldyOffset")
         }

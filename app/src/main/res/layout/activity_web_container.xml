@@ -6,15 +6,17 @@
     android:layout_height="match_parent"
     tools:context="com.yzq.demo.activity.WebContainerActivity">
 
+    <!--标题栏-->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="@color/purple_200"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:titleTextColor="@color/purple_700" />
+        app:titleTextColor="@color/white" />
 
-
+    <!--进度条-->
     <ProgressBar
         android:id="@+id/progressbar"
         style="@android:style/Widget.ProgressBar.Horizontal"
@@ -32,7 +34,7 @@
         app:layout_constraintTop_toBottomOf="@id/progressbar"
         app:layout_goneMarginTop="5dp" />
 
-
+    <!--浮动按钮-->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/reload_fab"
         android:layout_width="wrap_content"

@@ -16,8 +16,6 @@ import com.yzq.demo.fragment.WebContainerFragment
 /**
  * @description 在fragment中使用 webviewContainer示例
  * @author  yuzhiqiang (zhiqiang.yu.xeon@gmail.com)
- * @date    2023/3/27
- * @time    17:38
  */
 
 class ViewPagerWebActivity : AppCompatActivity() {

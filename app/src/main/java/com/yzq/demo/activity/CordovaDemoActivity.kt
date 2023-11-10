@@ -7,10 +7,8 @@ import android.os.Bundle
 import org.apache.cordova.CordovaActivity
 
 /**
- * @description 默认继承 CordovaActivity 的使用方式
+ * @description 官方默认使用方式，继承CordovaActivity
  * @author  yuzhiqiang (zhiqiang.yu.xeon@gmail.com)
- * @date    2023/3/15
- * @time    15:54
  */
 class CordovaDemoActivity : CordovaActivity() {
     companion object {

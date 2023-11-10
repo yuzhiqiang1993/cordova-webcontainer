@@ -14,8 +14,6 @@ import com.yzq.demo.activity.ViewPagerWebActivity
 /**
  * @description 在Fragment中使用示例
  * @author  yuzhiqiang (zhiqiang.yu.xeon@gmail.com)
- * @date    2023/3/28
- * @time    15:22
  */
 
 class WebContainerFragment(val webUrl: String) : CordovaWebContainerFragment() {
