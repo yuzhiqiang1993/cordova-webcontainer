@@ -8,7 +8,7 @@ android {
 }
 
 dependencies {
-
+    implementation(libs.androidx.activity)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     api(libs.xeonyu.cordova.lib)

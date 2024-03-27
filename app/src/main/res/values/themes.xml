@@ -25,4 +25,26 @@
         <item name="android:color">@color/white</item>
 
     </style>
+
+
+    <!--androidx.core:core-splashscreen Android 12的启动屏适配 兼容低版本-->
+    <style name="Theme.App.SplashScreen" parent="Theme.SplashScreen">
+        <!--        <item name="windowNoTitle">true</item>-->
+        <!--        <item name="android:windowFullscreen">true</item>-->
+        <!--        <item name="android:windowIsTranslucent">true</item>-->
+        <!--设备背景颜色-->
+        <!--        <item name="windowSplashScreenBackground">@color/white</item>-->
+        <!--设置动画或图片  动画在Android12 以下不生效 很难受...-->
+        <!--        <item name="windowSplashScreenAnimatedIcon">-->
+        <!--            @drawable/splash_screen_news_avd_preview-->
+        <!--        </item>-->
+
+
+        <!--动画执行时间-->
+        <!--        <item name="windowSplashScreenAnimationDuration">1000</item>-->
+        <!--设置闪屏也后启动页面的主题 说白了 就是app本来的主题-->
+        <item name="postSplashScreenTheme">@style/Theme.CordovaWebContainer</item>
+
+    </style>
+
 </resources>

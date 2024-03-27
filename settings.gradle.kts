@@ -19,15 +19,15 @@ dependencyResolutionManagement {
         }
     }
 
-    versionCatalogs {
-        create("libs") {
-//            from("com.xeonyu:version-catalog:0.0.4-SNAPSHOT")
-            from("com.xeonyu:version-catalog:0.1.2")
-//            version("xeonCordovaLib", "12.0.2")
-//            version("xeonCordovaWebContainer", "1.0.5")
-
-        }
-    }
+//    versionCatalogs {
+//        create("libs") {
+////            from("com.xeonyu:version-catalog:0.0.4-SNAPSHOT")
+////            from("com.xeonyu:version-catalog:0.1.2")
+////            version("xeonCordovaLib", "12.0.2")
+////            version("xeonCordovaWebContainer", "1.0.5")
+//
+//        }
+//    }
 }
 
 //rootProject.name = "CordovaWebContainer"

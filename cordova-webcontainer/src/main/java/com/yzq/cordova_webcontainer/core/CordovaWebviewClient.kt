@@ -47,16 +47,17 @@ open class CordovaWebviewClient(
         request: WebResourceRequest,
     ): WebResourceResponse? {
 
-        /**
-         * 这里要执行一下父类的shouldInterceptRequest方法,
-         * 内部调用了插件的getPathHandler方法，不写的话所有插件中的getPathHandler不会被调用
-         */
-        val resourceResponse = super.shouldInterceptRequest(view, request)
+
+        var resourceResponse: WebResourceResponse? = null
         if (interceptRequest != null) {
-            return interceptRequest!!.invoke(view, request, resourceResponse)
+            resourceResponse = interceptRequest!!.invoke(view, request, resourceResponse)
         }
 
-        return resourceResponse
+        if (resourceResponse != null) {
+            return resourceResponse
+        }
+
+        return super.shouldInterceptRequest(view, request)
     }
 
 
