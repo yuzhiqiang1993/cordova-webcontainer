@@ -17,7 +17,7 @@
 #### 添加依赖
 
 ```kotlin
-implementation("com.xeonyu:cordova-webcontainer:1.0.5")
+implementation("com.xeonyu:cordova-webcontainer:1.0.6")
 ```
 
 #### 继承CordovaWebContainerActivity使用
