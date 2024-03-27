@@ -16,7 +16,7 @@
 
 #### 添加依赖
 
-```
+```kotlin
 implementation("com.xeonyu:cordova-webcontainer:1.0.5")
 ```
 
@@ -26,7 +26,7 @@ implementation("com.xeonyu:cordova-webcontainer:1.0.5")
 
 布局示例
 
-```
+```xml
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -79,7 +79,7 @@ implementation("com.xeonyu:cordova-webcontainer:1.0.5")
 
 代码示例：
 
-```
+```kotlin
 /**
  * @description 继承自WebcontainerActivity的使用示例
  * @author  yuzhiqiang (zhiqiang.yu.xeon@gmail.com)
@@ -136,7 +136,7 @@ class WebContainerActivity : CordovaWebContainerActivity() {
 
 宿主的Activity中重写下面两个方法，写法固定
 
-```
+```kotlin
 override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
       
@@ -156,7 +156,7 @@ override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) 
 
 Fragment正常使用即可，示例代码
 
-```
+```kotlin
 package com.yzq.demo.fragment
 
 /**
@@ -199,7 +199,7 @@ class WebContainerFragment(val webUrl: String) : CordovaWebContainerFragment() {
 
 如果你不希望继承指定的Activity，你可以把`CordovaWebContainer`作为自定义view使用。
 
-```
+```kotlin
 package com.yzq.demo.activity
 
 
@@ -277,7 +277,7 @@ webContainer.loadUrl(url)
 
 #### 关键事件回调
 
-```
+```kotlin
 webContainer.addPagePbserver(PageObserver)
 ```
 
@@ -286,7 +286,7 @@ webContainer.addPagePbserver(PageObserver)
 
 #### 请求拦截处理
 
-```
+```kotlin
 /*可选拦截请求 等同于shouldInterceptRequest 记得用这个*/
                 webContainer.webviewClient.interceptRequest { view, request, response ->
                     val url = request.url.toString()
@@ -297,7 +297,7 @@ webContainer.addPagePbserver(PageObserver)
 
 #### loadurl 处理
 
-```
+```kotlin
 /*可选 处理准备load的url 等同于 shouldOverrideUrlLoading*/
                 webContainer.webviewClient.overrideUrlLoading { view, request ->
                     Log.i(TAG, "overrideUrlLoading:${request.url}")
@@ -312,7 +312,7 @@ webContainer.addPagePbserver(PageObserver)
 
 #### 滚动监听
 
-```
+```kotlin
 webContainer.setOnPageScrollChangedListener { xOffset, yOffset, oldxOffset, oldyOffset ->
             Log.i(TAG, "yOffset:$yOffset,oldyOffset:$oldyOffset")
         }
