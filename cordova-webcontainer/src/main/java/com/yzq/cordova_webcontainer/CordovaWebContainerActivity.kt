@@ -16,13 +16,13 @@ abstract class CordovaWebContainerActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        /*初始化intent携带的参数*/
+        //初始化intent携带的参数
         initArgs(extras = intent.extras)
-        /*初始化布局*/
+        //初始化布局
         initContentView()
-        /*初始化web容器*/
+        //初始化web容器
         webContainer = initWebContainer()
-        /*初始化控件*/
+        //初始化控件
         initWidget()
 
     }
