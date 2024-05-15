@@ -17,7 +17,7 @@
 #### 添加依赖
 
 ```kotlin
-implementation("com.xeonyu:cordova-webcontainer:1.0.6")
+implementation("com.xeonyu:cordova-webcontainer:1.0.7")
 ```
 
 #### 继承CordovaWebContainerActivity使用
@@ -103,10 +103,7 @@ class WebContainerActivity : CordovaWebContainerActivity() {
                 /**
                  * 初始化webcontainer
                  */
-                init(
-                    this@WebContainerActivity,
-                    this@WebContainerActivity
-                )
+                init(this@MainActivity, LOG.VERBOSE)
 
              
         return binding.webContainer
@@ -179,7 +176,7 @@ class WebContainerFragment(val webUrl: String) : CordovaWebContainerFragment() {
 
     override fun initWebContainer(): CordovaWebContainer {
         webContainer = rootView.findViewById(R.id.web_container)
-        webContainer.init(requireActivity() as AppCompatActivity, this)
+        webContainer.init(requireActivity() as AppCompatActivity, LOG.VERBOSE)
         return webContainer
     }
 
@@ -219,7 +216,7 @@ class MainActivity : AppCompatActivity() {
             toolbar.title = "基于Cordova的webview使用"
          
             /*初始化*/
-            webContainer.init(this@MainActivity, this@MainActivity)
+            webContainer.init(this@MainActivity, LOG.VERBOSE)
             /*加载url*/
 //            val url = "https://www.baidu.com/"
             webContainer.loadUrl()
