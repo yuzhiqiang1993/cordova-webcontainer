@@ -54,6 +54,7 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.google.material)
     implementation(libs.androidx.constraintlayout)
+    implementation(libs.xeonyu.logger)
 //    implementation("com.xeonyu:cordova-webcontainer:1.0.5")
     implementation(project(":cordova-webcontainer"))
 //    implementation(project(":cordova-webcontainer"))

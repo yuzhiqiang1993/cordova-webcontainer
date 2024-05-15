@@ -102,7 +102,7 @@ androidx-test-ext-junit = "1.1.5"
 espresso-core = "3.5.1"
 
 #高德map
-gaodeLocation = "6.4.3"
+gaodeLocation = "6.4.5"
 
 #我的开源库
 xeonBuildManager = "0.0.7"
@@ -111,7 +111,7 @@ xeonZxing = "2.2.9"
 xeonCordovaWebContainer = "1.0.6"
 xeonCordovaLib = "12.0.2"
 xeonBsDiff = "1.0.4"
-xeonLogger = "1.0.6"
+xeonLogger = "1.0.8"
 xeonApplication = "1.0.7"
 xeonCoroutine = "1.0.4"
 xeonMMKV = "1.0.1"
@@ -121,7 +121,7 @@ xeonLocationGaode = "1.0.1"
 xeonLocationTencent = "1.0.1"
 xeonLocationBaidu = "1.0.1"
 xeonNetworkStatus = "1.0.1"
-xeonFloatView = "1.0.1"
+xeonFloatView = "1.0.3"
 
 [libraries]
 

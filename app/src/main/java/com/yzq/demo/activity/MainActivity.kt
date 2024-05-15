@@ -4,7 +4,10 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.PersistableBundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.LifecycleOwner
+import com.yzq.cordova_webcontainer.observer.PageObserver
 import com.yzq.demo.databinding.ActivityMainBinding
+import org.apache.cordova.LOG
 
 
 /**
@@ -12,7 +15,7 @@ import com.yzq.demo.databinding.ActivityMainBinding
  * @author  yuzhiqiang (zhiqiang.yu.xeon@gmail.com)
  */
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), PageObserver {
     private lateinit var binding: ActivityMainBinding
     private val TAG = "MainActivity"
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,7 +34,8 @@ class MainActivity : AppCompatActivity() {
                 ViewPagerWebActivity.startActivity(this@MainActivity)
             }
             /*初始化*/
-            webContainer.init(this@MainActivity, this@MainActivity)
+            webContainer.init(this@MainActivity, LOG.VERBOSE)
+            webContainer.addPagePbserver(this@MainActivity)
             /*加载url*/
 //            val url = "https://www.baidu.com/"
             webContainer.loadUrl()
@@ -64,5 +68,22 @@ class MainActivity : AppCompatActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         binding.webContainer.onRequestPermissionsResult(requestCode, permissions, grantResults)
+    }
+
+    override fun onHostCreate(owner: LifecycleOwner, activity: AppCompatActivity) {
+        super.onHostCreate(owner, activity)
+
+    }
+
+    override fun onHostPause(owner: LifecycleOwner, activity: AppCompatActivity) {
+        super.onHostPause(owner, activity)
+    }
+
+    override fun onHostResume(owner: LifecycleOwner, activity: AppCompatActivity) {
+        super.onHostResume(owner, activity)
+    }
+
+    override fun onHostDestory(owner: LifecycleOwner, activity: AppCompatActivity) {
+        super.onHostDestory(owner, activity)
     }
 }

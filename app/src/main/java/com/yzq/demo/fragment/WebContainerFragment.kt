@@ -31,7 +31,7 @@ class WebContainerFragment(val webUrl: String) : CordovaWebContainerFragment() {
 
     override fun initWebContainer(): CordovaWebContainer {
         webContainer = rootView.findViewById(R.id.web_container)
-        webContainer.init(requireActivity() as AppCompatActivity, this)
+        webContainer.init(requireActivity() as AppCompatActivity)
         return webContainer
     }
 

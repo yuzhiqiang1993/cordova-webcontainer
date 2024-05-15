@@ -8,7 +8,6 @@ import android.graphics.Color
 import android.media.AudioManager
 import android.os.Bundle
 import android.util.AttributeSet
-import android.util.Log
 import android.view.ViewGroup
 import android.webkit.*
 import android.widget.FrameLayout
@@ -29,6 +28,7 @@ import org.apache.cordova.customer.listener.PageScrollChangedListener
 import org.apache.cordova.engine.SystemWebView
 import org.apache.cordova.engine.SystemWebViewEngine
 import org.json.JSONObject
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * @author yuzhiqiang (zhiqiang.yu.xeon@gmail.com)
@@ -46,11 +46,11 @@ class CordovaWebContainer @JvmOverloads constructor(
         const val TAG = "CordovaWebContainer"
     }
 
-    private var initialized = false
+    private val isInitialized: AtomicBoolean = AtomicBoolean(false)
+
 
     private val documentJsInterface: CordovaJsInterface = DocumentJsInterface()
     lateinit var hostActivity: AppCompatActivity
-    lateinit var hostLifecycleOwner: LifecycleOwner
 
     private var pageTitle: String = ""
 
@@ -87,25 +87,25 @@ class CordovaWebContainer @JvmOverloads constructor(
     val webChromeClient
         get() = _webChromeClient
 
-    fun init(
-        appCompatActivity: AppCompatActivity,
-        lifecycleOwner: LifecycleOwner,
-    ) {
+    fun init(appCompatActivity: AppCompatActivity, logLevel: Int = LOG.ERROR) {
+        if (isInitialized.get()) {
+            return
+        }
+        isInitialized.set(true)
         hostActivity = appCompatActivity
-        hostLifecycleOwner = lifecycleOwner
 
         // 读取config.xml配置
         loadConfig()
-        val logLevel = preferences.getString("loglevel", "ERROR")
+//        val logLevel = preferences.getString("loglevel", "ERROR")
         LOG.setLogLevel(logLevel)
-        Log.i(
+        LOG.i(
             TAG,
             "init: Apache Cordova native platform version ${CordovaWebView.CORDOVA_VERSION} is starting"
         )
         cordovaInterface = makeCordovaInterface()
         /*初始化webview*/
         initWebView()
-        Log.i(TAG, "CordovaWebContainer init complete")
+        LOG.i(TAG, "CordovaWebContainer init complete")
     }
 
 
@@ -156,7 +156,7 @@ class CordovaWebContainer @JvmOverloads constructor(
      * 宿主的生命周期处理
      */
     private fun handleHostLifecycle() {
-        hostLifecycleOwner.lifecycle.addObserver(object : DefaultLifecycleObserver {
+        hostActivity.lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onCreate(owner: LifecycleOwner) {
                 pageObserverList.forEach {
                     it.onHostCreate(owner, hostActivity)
@@ -277,7 +277,7 @@ class CordovaWebContainer @JvmOverloads constructor(
     fun loadUrl(url: String = launchUrl) {
         keepRunning = preferences.getBoolean("KeepRunning", true)
         if (url.isEmpty()) {
-            Log.e(TAG, "url不能为空，请检查")
+            LOG.e(TAG, "url不能为空，请检查")
             return
         }
         launchUrl = url
@@ -294,7 +294,7 @@ class CordovaWebContainer @JvmOverloads constructor(
      * @return
      */
     private fun handlePluginMessage(id: String, data: Any): Any {
-        Log.i(TAG, "handlePluginMessage:id: ${id},  data:$data")
+        LOG.i(TAG, "handlePluginMessage:id: ${id},  data:$data")
         when (id) {
             PluginMessageId.onPageStarted -> {
                 handleReadyStateChange()
@@ -423,7 +423,7 @@ class CordovaWebContainer @JvmOverloads constructor(
         webview.evaluateJavascript(
             "document.title".trimIndent()
         ) {
-            Log.i(TAG, "getDocumentTitle:$it ")
+            LOG.i(TAG, "getDocumentTitle:$it ")
             if (it.isNotEmpty()) {
                 this.pageTitle = it
             }
@@ -498,7 +498,7 @@ class CordovaWebContainer @JvmOverloads constructor(
         kotlin.runCatching {
             cordovaInterface.onRequestPermissionResult(requestCode, permissions, grantResults)
         }.onFailure {
-            Log.i(TAG, "JSONException: Parameters fed into the method are not valid")
+            LOG.i(TAG, "JSONException: Parameters fed into the method are not valid")
             it.printStackTrace()
         }
     }

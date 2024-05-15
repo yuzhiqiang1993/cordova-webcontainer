@@ -50,10 +50,7 @@ class WebContainerActivity : CordovaWebContainerActivity() {
                 /**
                  * 初始化
                  */
-                init(
-                    this@WebContainerActivity,
-                    this@WebContainerActivity
-                )
+                init(this@WebContainerActivity)
 
                 setWebviewClient(object : CordovaWebviewClient(webViewEngine) {
                     override fun onReceivedSslError(
