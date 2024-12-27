@@ -9,7 +9,7 @@ import android.media.AudioManager
 import android.os.Bundle
 import android.util.AttributeSet
 import android.view.ViewGroup
-import android.webkit.*
+import android.webkit.JavascriptInterface
 import android.widget.FrameLayout
 import android.widget.RelativeLayout
 import androidx.appcompat.app.AppCompatActivity
@@ -20,7 +20,15 @@ import com.yzq.cordova_webcontainer.core.CordovaWebviewChormeClient
 import com.yzq.cordova_webcontainer.core.CordovaWebviewClient
 import com.yzq.cordova_webcontainer.data.DocumentReadyState
 import com.yzq.cordova_webcontainer.observer.PageObserver
-import org.apache.cordova.*
+import org.apache.cordova.Config
+import org.apache.cordova.ConfigXmlParser
+import org.apache.cordova.CordovaInterfaceImpl
+import org.apache.cordova.CordovaPreferences
+import org.apache.cordova.CordovaWebView
+import org.apache.cordova.CordovaWebViewEngine
+import org.apache.cordova.CordovaWebViewImpl
+import org.apache.cordova.LOG
+import org.apache.cordova.PluginEntry
 import org.apache.cordova.customer.constant.PluginMessageId
 import org.apache.cordova.customer.data.PlugnExecResult
 import org.apache.cordova.customer.data.PlugnExecute
@@ -293,30 +301,42 @@ class CordovaWebContainer @JvmOverloads constructor(
      * @param data
      * @return
      */
-    private fun handlePluginMessage(id: String, data: Any): Any {
-        LOG.i(TAG, "handlePluginMessage:id: ${id},  data:$data")
+    private fun handlePluginMessage(id: String, data: Any?): Any {
         when (id) {
             PluginMessageId.onPageStarted -> {
                 handleReadyStateChange()
-                pageObserverList.forEach {
-                    it.onPageStarted(data as String)
+                runCatching {
+                    data as String
+                    pageObserverList.forEach {
+                        it.onPageStarted(data)
+                    }
                 }
             }
 
             PluginMessageId.onPageFinished -> {
                 getDocumentTitle()
-                pageObserverList.forEach {
-                    it.onPageFinished(data as String)
+
+                runCatching {
+                    data as String
+                    pageObserverList.forEach {
+                        it.onPageFinished(data)
+                    }
                 }
+
             }
 
             PluginMessageId.onProgressChanged -> {
-                pageObserverList.forEach {
-                    it.onProgressChanged(data as Int)
+
+                runCatching {
+                    data as Int
+                    pageObserverList.forEach {
+                        it.onProgressChanged(data)
+                    }
                 }
             }
 
             PluginMessageId.onReceivedTitle -> {
+
                 pageTitle = data as String
                 if (pageTitle != launchUrl) {
                     pageObserverList.forEach {
@@ -327,26 +347,39 @@ class CordovaWebContainer @JvmOverloads constructor(
             }
 
             PluginMessageId.onNavigationAttempt -> {
-                pageObserverList.forEach {
-                    it.onNavigationAttempt(data as String)
+                runCatching {
+                    data as String
+                    pageObserverList.forEach {
+                        it.onNavigationAttempt(data)
+                    }
                 }
             }
 
             PluginMessageId.onOverrideUrlLoading -> {
-                pageObserverList.forEach {
-                    it.onOverrideUrlLoading(data as String)
+                runCatching {
+                    data as String
+                    pageObserverList.forEach {
+                        it.onOverrideUrlLoading(data)
+                    }
                 }
             }
 
             PluginMessageId.shouldAllowNavigation -> {
-                pageObserverList.forEach {
-                    it.shouldAllowNavigation(data as String)
+                runCatching {
+                    data as String
+                    pageObserverList.forEach {
+                        it.shouldAllowNavigation(data)
+                    }
                 }
+
             }
 
             PluginMessageId.shouldOpenExternalUrl -> {
-                pageObserverList.forEach {
-                    it.shouldOpenExternalUrl(data as String)
+                runCatching {
+                    data as String
+                    pageObserverList.forEach {
+                        it.shouldOpenExternalUrl(data)
+                    }
                 }
             }
 
@@ -371,20 +404,21 @@ class CordovaWebContainer @JvmOverloads constructor(
 
             PluginMessageId.readyStateChange -> {
                 pageObserverList.forEach {
-                    when (data as String) {
-                        DocumentReadyState.loading.event -> {
-                            it.readyStateChange(DocumentReadyState.loading, launchUrl)
-                        }
+                    runCatching {
+                        when (data as String) {
+                            DocumentReadyState.loading.event -> {
+                                it.readyStateChange(DocumentReadyState.loading, launchUrl)
+                            }
 
-                        DocumentReadyState.interactive.event -> {
-                            it.readyStateChange(DocumentReadyState.interactive, launchUrl)
-                        }
+                            DocumentReadyState.interactive.event -> {
+                                it.readyStateChange(DocumentReadyState.interactive, launchUrl)
+                            }
 
-                        DocumentReadyState.complete.event -> {
-                            it.readyStateChange(DocumentReadyState.complete, launchUrl)
+                            DocumentReadyState.complete.event -> {
+                                it.readyStateChange(DocumentReadyState.complete, launchUrl)
+                            }
                         }
                     }
-
                 }
             }
 
@@ -402,7 +436,7 @@ class CordovaWebContainer @JvmOverloads constructor(
         return "handlePluginMessage"
     }
 
-    private fun onWindowError(data: Any) {
+    private fun onWindowError(data: Any?) {
         kotlin.runCatching {
             /*{"msg":"Uncaught Error: test error","url":"https://localhost/js/index.js","lineNo":45,"columnNo":5} */
             val jsonObject = JSONObject(data as String)
@@ -465,7 +499,7 @@ class CordovaWebContainer @JvmOverloads constructor(
 
     }
 
-    private fun onReceivedError(data: Any) {
+    private fun onReceivedError(data: Any?) {
         kotlin.runCatching {
             val jsonObject = data as JSONObject
             val errorCode = jsonObject.getInt("errorCode")
