@@ -272,7 +272,7 @@ class CordovaWebContainer @JvmOverloads constructor(
      */
     private fun makeCordovaInterface(): CordovaInterfaceImpl {
         return object : CordovaInterfaceImpl(hostActivity) {
-            override fun onMessage(id: String, data: Any): Any {
+            override fun onMessage(id: String, data: Any?): Any {
                 return handlePluginMessage(id, data)
             }
         }
