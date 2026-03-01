@@ -104,7 +104,7 @@ class WebContainerActivity : CordovaWebContainerActivity() {
                 webview.settings.setSupportZoom(false)
                 /* ---- 优势 4：深度而细致地接管各状态分发 ---- */
                 // 仅需重写需要监听的状态项，即可追踪到包括 JS Error 以及定制 Plugin 进出结果的底层信息
-                addPagePbserver(object : PageObserver {
+                addPageObserver(object : PageObserver {
                     override fun onPageStarted(url: String) {
                         Log.i(TAG, "onPageStarted: $url")
                     }

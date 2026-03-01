@@ -236,7 +236,7 @@ class CordovaInject internal constructor(
         if (CordovaWebContainerConfig.isLogEnable) {
             Log.d(TAG, "注册 PageObserver 监听器")
         }
-        webContainer.addPagePbserver(object : PageObserver {
+        webContainer.addPageObserver(object : PageObserver {
             override fun onPageStarted(url: String) {
                 if (shouldInject(url)) {
                     injectWithPageStarted(url)

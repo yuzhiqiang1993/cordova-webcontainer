@@ -37,7 +37,7 @@ class MainActivity : AppCompatActivity() {
             webContainer.init(this@MainActivity, LOG.VERBOSE)
             
             // 添加页面观察者，按需监听关注的事件即可（PageObserver 接口默认空实现，无需堆砌模板代码）
-            webContainer.addPagePbserver(object : PageObserver {
+            webContainer.addPageObserver(object : PageObserver {
                 override fun onPageStarted(url: String) {
                     LOG.i(TAG, "纯 View 模式：页面开始加载 -> $url")
                 }

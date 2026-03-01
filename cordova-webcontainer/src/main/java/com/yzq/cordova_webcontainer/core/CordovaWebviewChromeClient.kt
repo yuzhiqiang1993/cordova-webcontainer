@@ -16,11 +16,11 @@ import org.apache.cordova.engine.SystemWebViewEngine
 
 
 /**
- * @description 自定义的webviewChormeClient
+ * @description 自定义的webviewChromeClient
  * @author  yuzhiqiang (zhiqiang.yu.xeon@gmail.com)
  */
 
-open class CordovaWebviewChormeClient(parentEngine: SystemWebViewEngine) :
+open class CordovaWebviewChromeClient(parentEngine: SystemWebViewEngine) :
     SystemWebChromeClient(parentEngine) {
 
 

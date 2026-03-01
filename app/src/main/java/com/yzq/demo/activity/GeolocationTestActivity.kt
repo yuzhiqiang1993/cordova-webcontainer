@@ -71,7 +71,7 @@ class GeolocationTestActivity : CordovaWebContainerActivity() {
                 webview.settings.setSupportZoom(false)
 
                 // 注入页面及结果监听
-                addPagePbserver(object : PageObserver {
+                addPageObserver(object : PageObserver {
                     override fun onPageStarted(url: String) {
                         Log.i(TAG, "定位系统测试 onPageStarted: $url")
                     }

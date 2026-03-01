@@ -182,7 +182,7 @@ class MainActivity : AppCompatActivity() {
 | `clearCache(includeDiskFiles)` | `includeDiskFiles` (Boolean) | 彻底清理 Web 容器产生的缓存。<br/>`includeDiskFiles` = true 时，将一并把磁盘中的旧静态资源持久化文件一并销毁。 |
 | `clearHistory()` | 无 | 一键清空当前 WebView 从被唤起至今累计的所有访问链与历史状态堆栈。 |
 | `setWebviewClient(client)` | `CordovaWebviewClient` 实例 | 更替或重写 WebClient 代理池，接管并干预包括离线缓存提取、自定义协议分发和 SSL 认证在内的高级网络生命周期。 |
-| `setWebviewChormeClient(client)` | `CordovaWebviewChormeClient` 实例 | 更替或重写 ChromeClient 代理，一般用于接手 H5 发起的系统级 Alert 处理、文件选取或精细控制 ProgressBar 的展示进度控制。 |
+| `setWebviewChromeClient(client)` | `CordovaWebviewChromeClient` 实例 | 更替或重写 ChromeClient 代理，一般用于接手 H5 发起的系统级 Alert 处理、文件选取或精细控制 ProgressBar 的展示进度控制。 |
 
 
 ### 2. 生命周期回调全景监听 (`PageObserver`)
@@ -271,26 +271,23 @@ CordovaWebContainerConfig.ENABLE_CORDOVA_API_WHITELIST = true
 
 // 2. 注入你预定义的全局防御与域名白名单策略
 CordovaWebContainerConfig.cordovaWhitelistConfig = WhitelistConfig(
-    // 默认防线：对于所有未在下方名单中的域名发起的全部 Cordova 调用，是否全面予以放行？
-    defaultAllow = false,  // 推荐 false，执行最严格的拦截
+    // 是否启用白名单（false 时所有 API 均可调用，即不拦截）
+    enable = true,
     
-    // 自定义针对部分白名单站点的特权放行策略
-    whitelist = listOf(
-        // 名单1：完全信赖本地打包加载的静态内容，赋予所有系统组件唤起特权
-        WhitelistRule(
-            domain = "file://.*", 
-            allowAllPlugins = true 
-        ),
-        // 名单2：针对某业务合作方的域名，只允许他们唤出相机和设备信息，其他底层行为绝对禁止！
-        WhitelistRule(
-            domain = "https://partner.trusted.com", 
-            allowAllPlugins = false, 
-            allowedPlugins = listOf("Camera", "Device")
+    // 信任的域名列表（逗号分隔），匹配该列表中域名的页面将拥有所有 API 权限
+    trustedDomains = "file://, trusted.partner.com",
+    
+    // 全局放行的 API 列表（如 "Geolocation/*" 放行该插件所有动作，"Camera/takePicture" 精确放行动作）
+    trustedApis = listOf("Device/*", "NetworkStatus/*"),
+    
+    // 细粒度的域名规则：针对特定域名，细化其被允许调用的 API 列表
+    rules = listOf(
+        WhitelistConfig.Rule(
+            domain = "api.limited-partner.com",
+            comment = "业务合作方的特定沙盒限制",
+            allow = listOf("Camera/*", "Media/*")
         )
-    ),
-    
-    // 如果拦截发生，允许配置一套 JSON 格式的固定应答下发回给前端
-    interceptResponse = """{"status":403,"message":"Access Denied by Host App"}"""
+    )
 )
 ```
 

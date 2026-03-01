@@ -17,7 +17,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.yzq.cordova_webcontainer.config.CordovaWebContainerConfig
 import com.yzq.cordova_webcontainer.core.CordovaJsInterface
-import com.yzq.cordova_webcontainer.core.CordovaWebviewChormeClient
+import com.yzq.cordova_webcontainer.core.CordovaWebviewChromeClient
 import com.yzq.cordova_webcontainer.core.CordovaWebviewClient
 import com.yzq.cordova_webcontainer.core.injection.CordovaInject
 import com.yzq.cordova_webcontainer.core.whitelist.CordovaWhitelistInterceptor
@@ -94,7 +94,7 @@ class CordovaWebContainer @JvmOverloads constructor(
         get() = _webviewClient
 
 
-    private lateinit var _webChromeClient: CordovaWebviewChormeClient
+    private lateinit var _webChromeClient: CordovaWebviewChromeClient
     val webChromeClient
         get() = _webChromeClient
 
@@ -153,7 +153,7 @@ class CordovaWebContainer @JvmOverloads constructor(
         }
         webview.webViewClient = _webviewClient
 
-        _webChromeClient = CordovaWebviewChormeClient(webViewEngine)
+        _webChromeClient = CordovaWebviewChromeClient(webViewEngine)
         webview.webChromeClient = _webChromeClient
 
         addJavascriptInterface(documentJsInterface)
@@ -169,8 +169,8 @@ class CordovaWebContainer @JvmOverloads constructor(
         webview.webViewClient = _webviewClient
     }
 
-    fun setWebviewChormeClient(webviewChormeClient: CordovaWebviewChormeClient) {
-        _webChromeClient = webviewChormeClient
+    fun setWebviewChromeClient(webviewChromeClient: CordovaWebviewChromeClient) {
+        _webChromeClient = webviewChromeClient
         webview.webChromeClient = _webChromeClient
     }
 
@@ -569,7 +569,7 @@ class CordovaWebContainer @JvmOverloads constructor(
     }
 
 
-    fun addPagePbserver(pageObserver: PageObserver) {
+    fun addPageObserver(pageObserver: PageObserver) {
         this.pageObserverList.add(pageObserver)
     }
 
