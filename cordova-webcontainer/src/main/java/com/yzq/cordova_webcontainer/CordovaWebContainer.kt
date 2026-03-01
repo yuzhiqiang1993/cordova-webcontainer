@@ -19,6 +19,7 @@ import com.yzq.cordova_webcontainer.config.CordovaWebContainerConfig
 import com.yzq.cordova_webcontainer.core.CordovaJsInterface
 import com.yzq.cordova_webcontainer.core.CordovaWebviewChormeClient
 import com.yzq.cordova_webcontainer.core.CordovaWebviewClient
+import com.yzq.cordova_webcontainer.core.injection.CordovaInject
 import com.yzq.cordova_webcontainer.core.whitelist.CordovaWhitelistInterceptor
 import com.yzq.cordova_webcontainer.data.DocumentReadyState
 import com.yzq.cordova_webcontainer.observer.PageObserver
@@ -97,6 +98,8 @@ class CordovaWebContainer @JvmOverloads constructor(
     val webChromeClient
         get() = _webChromeClient
 
+    private var cordovaInject: CordovaInject? = null
+
     fun init(appCompatActivity: AppCompatActivity, logLevel: Int = LOG.ERROR) {
         if (isInitialized.get()) {
             return
@@ -140,7 +143,14 @@ class CordovaWebContainer @JvmOverloads constructor(
             hostActivity.volumeControlStream = AudioManager.STREAM_MUSIC
         }
 
+        // 初始化前端自动注入
+        cordovaInject = CordovaInject(hostActivity, this)
+
         _webviewClient = CordovaWebviewClient(webViewEngine)
+        _webviewClient?.interceptRequest { _, request, _ ->
+            val url = request.url.toString()
+            cordovaInject?.interceptResource(url)
+        }
         webview.webViewClient = _webviewClient
 
         _webChromeClient = CordovaWebviewChormeClient(webViewEngine)
@@ -567,6 +577,9 @@ class CordovaWebContainer @JvmOverloads constructor(
     private fun destory() {
         appView.handleDestroy()
         this.pageObserverList.clear()
+
+        cordovaInject?.destroy()
+        cordovaInject = null
     }
 
     fun canGoBack() = webview.canGoBack()
