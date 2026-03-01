@@ -166,3 +166,9 @@ fabric.properties
 !/gradle/wrapper/gradle-wrapper.jar
 
 # End of https://www.toptal.com/developers/gitignore/api/android,androidstudio
+
+# Custom ignores
+*.DS_Store
+.DS_Store
+AGENTS.md
+contexts/
