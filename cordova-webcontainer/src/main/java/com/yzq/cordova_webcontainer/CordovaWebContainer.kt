@@ -186,7 +186,7 @@ class CordovaWebContainer @JvmOverloads constructor(
             }
 
             override fun onPause(owner: LifecycleOwner) {
-                val keepRunningNew = keepRunning || cordovaInterface.activityResultCallback != null
+                val keepRunningNew = keepRunning || cordovaInterface.hasActivityResultCallback()
                 appView.handlePause(keepRunningNew)
                 pageObserverList.forEach {
                     it.onHostPause(owner, hostActivity)
