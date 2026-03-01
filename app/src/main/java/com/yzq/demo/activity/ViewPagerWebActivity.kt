@@ -57,9 +57,23 @@ class ViewPagerWebActivity : AppCompatActivity() {
         }
 
 
-        TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
+        val tabLayoutMediator = TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
             tab.text = tabTitles[position].tabTitle
-        }.attach()
+        }
+        tabLayoutMediator.attach()
+
+        // 监听页面切换，动态更新 currentFragment 引用
+        binding.viewPager.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                super.onPageSelected(position)
+                val fragmentManager = supportFragmentManager
+                // ViewPager2 底层默认生成 tag 规则为 "f" + item_id (默认即 position)
+                val fragment = fragmentManager.findFragmentByTag("f$position")
+                if (fragment is WebContainerFragment) {
+                    currentFragment = fragment
+                }
+            }
+        })
 
 
     }

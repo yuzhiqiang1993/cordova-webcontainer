@@ -11,11 +11,11 @@ import org.apache.cordova.LOG
 
 
 /**
- * @description 直接使用Webcontainer控件的示例，适用于更加灵活的场景,例如你不想继承指定的Activity
+ * @description 核心优势演示：直接将 Cordova 作为轻量级 View 嵌入原生页面。
+ * 摆脱了官方强制继承 CordovaActivity 的束缚，可以将其放在任意 ViewGroup 内。
  * @author  yuzhiqiang (zhiqiang.yu.xeon@gmail.com)
  */
-
-class MainActivity : AppCompatActivity(), PageObserver {
+class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val TAG = "MainActivity"
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -23,7 +23,6 @@ class MainActivity : AppCompatActivity(), PageObserver {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         binding.run {
-            toolbar.title = "基于Cordova的webview使用"
             btnCordovaActivitySample.setOnClickListener {
                 CordovaDemoActivity.startActivity(this@MainActivity)
             }
@@ -33,13 +32,27 @@ class MainActivity : AppCompatActivity(), PageObserver {
             btnFragmentSample.setOnClickListener {
                 ViewPagerWebActivity.startActivity(this@MainActivity)
             }
-            /*初始化*/
+            /* ---- 核心演示：初始化 CordovaWebContainer ---- */
+            // 传入当前 Activity 以绑定生命周期
             webContainer.init(this@MainActivity, LOG.VERBOSE)
-            webContainer.addPagePbserver(this@MainActivity)
-            /*加载url*/
-//            val url = "https://www.baidu.com/"
-            webContainer.loadUrl()
+            
+            // 添加页面观察者，按需监听关注的事件即可（PageObserver 接口默认空实现，无需堆砌模板代码）
+            webContainer.addPagePbserver(object : PageObserver {
+                override fun onPageStarted(url: String) {
+                    LOG.i(TAG, "纯 View 模式：页面开始加载 -> $url")
+                }
 
+                override fun onReceivedTitle(title: String) {
+                    LOG.i(TAG, "纯 View 模式：收到页面标题 -> $title")
+                }
+
+                override fun pluginExecute(plugnExecute: org.apache.cordova.customer.data.PlugnExecute) {
+                    LOG.i(TAG, "纯 View 模式：拦截到 JS 插件调用 -> ${plugnExecute.pluginName}.${plugnExecute.action}")
+                }
+            })
+
+            /* ---- 加载目标连接 ---- */
+            webContainer.loadUrl()
         }
 
     }
@@ -68,22 +81,5 @@ class MainActivity : AppCompatActivity(), PageObserver {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         binding.webContainer.onRequestPermissionsResult(requestCode, permissions, grantResults)
-    }
-
-    override fun onHostCreate(owner: LifecycleOwner, activity: AppCompatActivity) {
-        super.onHostCreate(owner, activity)
-
-    }
-
-    override fun onHostPause(owner: LifecycleOwner, activity: AppCompatActivity) {
-        super.onHostPause(owner, activity)
-    }
-
-    override fun onHostResume(owner: LifecycleOwner, activity: AppCompatActivity) {
-        super.onHostResume(owner, activity)
-    }
-
-    override fun onHostDestory(owner: LifecycleOwner, activity: AppCompatActivity) {
-        super.onHostDestory(owner, activity)
     }
 }

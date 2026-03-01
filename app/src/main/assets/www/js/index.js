@@ -42,7 +42,6 @@ function onBatteryStatus(status) {
     console.log('onBatteryStatus', status)
     document.getElementById('batterystatus').innerText = "当前电量：" + status.level + "%"
     console.log("Level: " + status.level + " isPlugged: " + status.isPlugged);
-    throw Error("test error")
 }
 
 

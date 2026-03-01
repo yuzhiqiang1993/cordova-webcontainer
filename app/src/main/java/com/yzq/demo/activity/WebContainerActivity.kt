@@ -20,7 +20,11 @@ import org.apache.cordova.customer.data.PlugnExecute
 
 
 /**
- * @description 继承自WebcontainerActivity的使用示例
+ * @description 继承自 CordovaWebContainerActivity 的快速使用示例
+ * 核心优势演示：
+ * 1. 内部已完美接管 Cordova 引擎的生命周期和 Permission/Result 调度机制
+ * 2. 提供了极其暴露且灵活的资源拦截接口 (InterceptRequest) 与页面跳转拦截 (OverrideUrlLoading)
+ * 3. 无需书写笨重的 Cordova Plugin 也可以像普通 WebView 一样混编注入底层 JS Bridge
  * @author  yuzhiqiang (zhiqiang.yu.xeon@gmail.com)
  */
 
@@ -62,29 +66,33 @@ class WebContainerActivity : CordovaWebContainerActivity() {
                     }
                 })
 
-                /*可选拦截请求 等同于shouldInterceptRequest 记得用这个*/
+                /* ---- 优势 1：灵活接管 WebView 资源网络请求 ---- */
+                // 支持对任意的请求做本地代理或离线缓存等处理
                 webContainer.webviewClient.interceptRequest { view, request, response ->
                     val url = request.url.toString()
-                    Log.i(TAG, "interceptRequest:$url")
+                    Log.i(TAG, "interceptRequest 离线及资源拦截点: $url")
                     return@interceptRequest response
                 }
 
 
-                /*可选 处理准备load的url 等同于 shouldOverrideUrlLoading*/
+                /* ---- 优势 2：轻松控制 URL 路由跳转 ---- */
                 webviewClient.overrideUrlLoading { view, request ->
-                    Log.i(TAG, "overrideUrlLoading:${request.url}")
+                    Log.i(TAG, "overrideUrlLoading 拦截到页面内跳转动作: ${request.url}")
                     request.url.toString().let {
                         if (it.startsWith("baidu://")) {
+                            Log.i(TAG, "已成功拦截目标 Scheme，阻止引擎默认跳转")
                             return@overrideUrlLoading true
                         }
                     }
                     return@overrideUrlLoading false
                 }
 
-                /*js bridge*/
+                /* ---- 优势 3：无缝混编原生极简 JS Bridge ---- */
+                // 抛开繁杂的 Cordova Plugin 配置，针对简单的业务依然支持直接绑定轻量对象
                 val testJs = object : CordovaJsInterface("test") {
                     @JavascriptInterface
                     fun methordA() {
+                        Log.i(TAG, "内置的原生 JavascriptInterface 被回调")
                     }
                 }
                 addJavascriptInterface(testJs)
@@ -94,9 +102,8 @@ class WebContainerActivity : CordovaWebContainerActivity() {
                 /*可选自定义webSettings*/
                 webview.settings.javaScriptEnabled = true
                 webview.settings.setSupportZoom(false)
-                /**
-                 * 需要对页面进行监听的话可以加PageObserver
-                 */
+                /* ---- 优势 4：深度而细致地接管各状态分发 ---- */
+                // 仅需重写需要监听的状态项，即可追踪到包括 JS Error 以及定制 Plugin 进出结果的底层信息
                 addPagePbserver(object : PageObserver {
                     override fun onPageStarted(url: String) {
                         Log.i(TAG, "onPageStarted: $url")
@@ -119,11 +126,11 @@ class WebContainerActivity : CordovaWebContainerActivity() {
                     }
 
                     override fun pluginExecute(plugnExecute: PlugnExecute) {
-                        Log.i(TAG, "pluginExecStart: $plugnExecute")
+                        Log.i(TAG, "统一监听：拦截到了 Cordova Plugin 调用 -> $plugnExecute")
                     }
 
                     override fun pluginExecResult(plugnExecResult: PlugnExecResult) {
-                        Log.i(TAG, "pluginExecFinish: $plugnExecResult")
+                        Log.i(TAG, "统一监听：拦截到了 Cordova Plugin 响应 -> $plugnExecResult")
                     }
 
                     override fun onWindowError(
@@ -132,13 +139,11 @@ class WebContainerActivity : CordovaWebContainerActivity() {
                         lineNo: Int,
                         columnNo: Int,
                     ) {
-                        Log.i(
+                        Log.e(
                             TAG,
-                            "onWindowError: url:$url,msg:$msg,lineNo:$lineNo,columnNo:$columnNo"
+                            "JS 报错捕获: url:$url, msg:$msg, lineNo:$lineNo, columnNo:$columnNo"
                         )
                     }
-
-
                 })
             }
         }
