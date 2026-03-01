@@ -8,11 +8,12 @@
     tools:context="com.yzq.demo.activity.WebContainerActivity">
 
     <!--标题栏外层提质-->
-    <com.google.android.material.appbar.AppBarLayout
+    <LinearLayout
         android:id="@+id/app_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:elevation="4dp"
+        android:elevation="4dp"
+        android:orientation="vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -33,9 +34,9 @@
             android:progressDrawable="@drawable/custom_progress_drawable"
             android:progressTint="@color/white"
             android:visibility="gone" />
-    </com.google.android.material.appbar.AppBarLayout>
+    </LinearLayout>
 
-    <com.google.android.material.card.MaterialCardView
+    <androidx.cardview.widget.CardView
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_margin="16dp"
@@ -45,26 +46,26 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/app_bar"
-        app:strokeWidth="0dp">
+        app:layout_constraintTop_toBottomOf="@id/app_bar">
 
         <!--基于Cordova封装的web容器控件-->
         <com.yzq.cordova_webcontainer.CordovaWebContainer
             android:id="@+id/web_container"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
-    </com.google.android.material.card.MaterialCardView>
+    </androidx.cardview.widget.CardView>
 
     <!--浮动按钮-->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
+    <ImageButton
         android:id="@+id/reload_fab"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="24dp"
         android:contentDescription="刷新"
         android:src="@drawable/refresh"
-        app:backgroundTint="?attr/colorPrimary"
-        app:elevation="8dp"
+        android:backgroundTint="?attr/colorPrimary"
+        android:elevation="8dp"
+        android:padding="12dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:tint="@color/white" />
