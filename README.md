@@ -1,330 +1,315 @@
-# CordovaWebView
+# Cordova WebContainer
 
-基于Android端CordovaLib的封装，在保留cordova原有功能的基础上，摆脱了必须继承CordovaActivity的限制，大幅提升UI的灵活度，可以像使用webview一样使用在Activity、Fragment甚至是自定义View中使用Cordova的能力。
-同时，在原有的基础上提供更加丰富的事件回调，可应用于更加丰富的业务场景中。
+[![Maven Central](https://img.shields.io/maven-central/v/com.xeonyu/cordova-webcontainer.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:com.xeonyu%20AND%20a:cordova-webcontainer)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![API](https://img.shields.io/badge/API-21%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=21)
+
+一个轻量、现代且易于嵌入的 Android Cordova Web 容器组件库。
+
+本项目基于 Android 端官方的 CordovaLib 进行深度二次封装。其**核心目的**在于解决传统 Cordova 开发中宿主**必须强行继承 `CordovaActivity` 所带来的 UI 僵化与极高耦合度问题**。在这个库中，底层引擎的初始化与交互被解耦收拢到一个普通的 `RelativeLayout` 自定义 View 中。这让你能在保留 Cordova 原有插件生态与强大双端通信交互能力的前提下，像使用原生 `WebView` 一样，将其无比灵活地无缝嵌套在任何 `Activity`、`Fragment` 甚至复杂的折叠屏/侧滑布局中。同时，我们在原生机制上拓展了更加丰富且容易上手的声明式回调，轻松胜任各种混合开发验证与独立 Web 业务场景。
 
 ## 核心优势
 
-* 解决了必须继承的Activity的问题，粒度小，可以像使用webview一样使用，适用于任何个性化的ui
-* 提供了丰富的事件回调
+- **极致灵活**: 细粒度组件化设计，打破 Activity 继承约束，提供 View 级的最小侵入集成方案。
+- **开箱即用**: 提供经过验证的最佳实践基类 (`CordovaWebContainerActivity`, `CordovaWebContainerFragment`) 供快速继承使用。
+- **现代化架构**: 原生 AndroidX 兼容及优质的 Kotlin API 侧封装，处理繁重的手动生命周期与事件分发分发。
+- **多维侦听器**: 扩展了页面进度、标题获取、HTML Document API 级别的 `readyStateChange` 以及底层 JS 异常追踪机制。
+- **透明式请求拦截**: 提供极简的闭包 API 以拦截资源请求与自定义协议劫持 (`overrideUrlLoading` / `interceptRequest`)。
+
+---
 
 ## 运行示例
 
-![1.gif](assets/sample.gif)
+![Demo](assets/sample.gif)
 
-## 使用
+---
 
-#### 添加依赖
+## 安装 (Installation)
+
+> **获取最新版本**: 请前往 [Maven Repository](https://mvnrepository.com/artifact/com.xeonyu/cordova-webcontainer) 查看并获取最新的正式版本号。
+
+在你的工程模块级 `build.gradle.kts` 或 `build.gradle` 文件中引入依赖：
 
 ```kotlin
-implementation("com.xeonyu:cordova-webcontainer:1.0.7")
+dependencies {
+    // 请将 x.x.x 替换为上述链接中查询到的最新版本号
+    implementation("com.xeonyu:cordova-webcontainer:x.x.x") 
+}
 ```
 
-#### 继承CordovaWebContainerActivity使用
+---
 
-该方式适用于绝大部分业务场景，集成简单，兼顾ui灵活性
+## 快速开始 (Quick Start)
 
-布局示例
+为满足不同耦合度的业务场景，组件提供了由浅到深两种集成方式。
+
+### 方式一：继承特化基类 (推荐)
+
+该方式适用于绝大部分标准混合开发场景。我们封装了 `CordovaWebContainerActivity` 和 `CordovaWebContainerFragment`，帮助开发者省去向容器转发系统生命周期、ActivityResult 及权限申请回调等各种固式样板代码，又兼备了极高的 UI 自定义拓展性。
+
+**1. 布局中引用 `CordovaWebContainer` 组件**
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.yzq.demo.activity.WebContainerActivity">
+    android:orientation="vertical">
 
-    <!--标题栏-->
+    <!-- 你的任意原生标题栏或其他组合控件 -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/purple_200"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:titleTextColor="@color/white" />
+        android:layout_height="wrap_content" />
 
-    <!--进度条-->
-    <ProgressBar
-        android:id="@+id/progressbar"
-        style="@android:style/Widget.ProgressBar.Horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="5dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/toolbar" />
-
-    <!--基于Cordova封装的web容器控件-->
+    <!-- 承载网页的核心 CordovaWebContainer 容器 -->
     <com.yzq.cordova_webcontainer.CordovaWebContainer
         android:id="@+id/web_container"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/progressbar"
-        app:layout_goneMarginTop="5dp" />
+        android:layout_height="match_parent" />
 
-    <!--浮动按钮-->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/reload_fab"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:contentDescription="刷新"
-        android:src="@drawable/refresh"
-        android:tint="@color/white"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-</androidx.constraintlayout.widget.ConstraintLayout>
+</LinearLayout>
 ```
 
-代码示例：
+**2. 核心代码初始化及挂载**
+
+继承基类并实现相关的抽象组件初始化方法：
 
 ```kotlin
-/**
- * @description 继承自WebcontainerActivity的使用示例
- * @author  yuzhiqiang (zhiqiang.yu.xeon@gmail.com)
- */
-
 class WebContainerActivity : CordovaWebContainerActivity() {
     private lateinit var binding: ActivityWebContainerBinding
-    private val TAG = "WebContainerActivity"
 
-    /*布局初始化*/
+    /* 初始化你的原生布局 */
     override fun initContentView() {
         binding = ActivityWebContainerBinding.inflate(layoutInflater)
         setContentView(binding.root)
     }
 
-
-    /*初始化Webcontainer控件*/
+    /* 绑定并初始化 WebContainer 控件 */
     override fun initWebContainer(): CordovaWebContainer {
-        with(binding) {
-            webContainer.run {
-                /**
-                 * 初始化webcontainer
-                 */
-                init(this@MainActivity, LOG.VERBOSE)
-
-             
+        with(binding.webContainer) {
+            // 初始化宿主环境，LOG 为 Cordova 内部日志级别
+            init(this@WebContainerActivity, LOG.VERBOSE)
+        }
         return binding.webContainer
     }
 
-
+    /* 至此，生命周期、页面逻辑已被内部接管，可专注于拓展交互逻辑 */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val url = "https://baidu.com/"
-        binding.webContainer.loadUrl(url)
-        binding.webContainer.setOnPageScrollChangedListener { xOffset, yOffset, oldxOffset, oldyOffset ->
-            Log.i(TAG, "yOffset:$yOffset,oldyOffset:$oldyOffset")
-        }
-        binding.reloadFab.setOnClickListener {
-            binding.webContainer.reload()
-
+        
+        // 加载特定的 Web 业务资源
+        binding.webContainer.loadUrl("https://apache.org/")
+        
+        // 绑定原生滚动或其他的扩展事件
+        binding.webContainer.setOnPageScrollChangedListener { xOffset, yOffset, oldX, oldY ->
+            Log.i("WebContainer", "当前滚动 Y 轴距离: $yOffset")
         }
     }
-
 }
 ```
 
-#### 在Fragment中使用
+> **注意：如何在 Fragment 中使用？**
+> 对于侧滑、底部导航栏等复杂场景，可以直接继承 `CordovaWebContainerFragment`。它的生命周期要求与使用 API 和上述 Activity 版本完全一致。由于 Cordova 权限机制依赖组件的顶层交互，**必须在 Fragment 的宿主 Activity 中向该下级 Fragment 手动分发** `onActivityResult` 和 `onRequestPermissionsResult` 方法，确保系统相册、相机或定位弹窗等插件权限得以畅通回传。
 
-支持在Fragment中使用，继承`CordovaWebContainerFragment`即可，api跟`CordovaWebContainerActivity`
-一致。需要注意的是Fragment的宿主Activity需要处理下页面结果回调的方法。
+---
 
-宿主的Activity中重写下面两个方法，写法固定
+### 方式二：完全作为原生自定义 View 自由组合
 
-```kotlin
-override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-      
-        currentFragment?.onActivityResult(requestCode, resultCode, data)
-    }
+如果你有着极为特殊的嵌套需求，或者坚决不想改变任何已有的基类设计架构（如使用第三方开源基础库的 Activity），可以直接在 XML 里将 `CordovaWebContainer` 当成一个普通的黑盒 `View` 嵌入并独立工作。
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray,
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-      
-        currentFragment?.onRequestPermissionsResult(requestCode, permissions, grantResults)
-    }
-```
-
-Fragment正常使用即可，示例代码
+**代价是，作为宿主容器（Activity / Fragment），你必须亲自分发系统事件（如权限组、唤起回传、屏幕翻转缓存恢复）给容器，否则诸多混合开发插件（如拍照）将因为失去生命周期焦点而出现崩溃或无响应。**
 
 ```kotlin
-package com.yzq.demo.fragment
-
-/**
- * @description 在Fragment中使用示例
- * @author  yuzhiqiang (zhiqiang.yu.xeon@gmail.com)
- */
-
-class WebContainerFragment(val webUrl: String) : CordovaWebContainerFragment() {
-    private lateinit var rootView: View
+class MainActivity : AppCompatActivity() {
     private lateinit var webContainer: CordovaWebContainer
 
-    override fun initContentView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View {
-        rootView = layoutInflater.inflate(R.layout.fragment_web_container, container, false)
-        return rootView
-    }
-
-    override fun initWebContainer(): CordovaWebContainer {
-        webContainer = rootView.findViewById(R.id.web_container)
-        webContainer.init(requireActivity() as AppCompatActivity, LOG.VERBOSE)
-        return webContainer
-    }
-
-    override fun initWidget() {
-        if (webUrl.isNotEmpty()) {
-            webContainer.loadUrl(url = webUrl)
-        } else {
-            webContainer.loadUrl()
-        }
-    }
-
-
-}
-```
-
-#### 作为自定义view使用
-
-如果你不希望继承指定的Activity，你可以把`CordovaWebContainer`作为自定义view使用。
-
-```kotlin
-package com.yzq.demo.activity
-
-
-/**
- * @description 直接使用Webcontainer控件的示例，适用于更加灵活的场景,例如你不想继承指定的Activity
- * @author  yuzhiqiang (zhiqiang.yu.xeon@gmail.com)
- */
-
-class MainActivity : AppCompatActivity() {
-    private lateinit var binding: ActivityMainBinding
-    private val TAG = "MainActivity"
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        binding.run {
-            toolbar.title = "基于Cordova的webview使用"
-         
-            /*初始化*/
-            webContainer.init(this@MainActivity, LOG.VERBOSE)
-            /*加载url*/
-//            val url = "https://www.baidu.com/"
-            webContainer.loadUrl()
+        setContentView(R.layout.activity_main)
+        webContainer = findViewById(R.id.web_container)
 
-        }
-
+        // 1. 初始化容器
+        webContainer.init(this)
+        
+        // 2. 加载 URL
+        webContainer.loadUrl("file:///android_asset/www/index.html")
     }
 
-
-    //固定写法
+    // --- 必须手动分发的生命周期与系统事件 (标准固定样板) ---
+    
     override fun onSaveInstanceState(outState: Bundle, outPersistentState: PersistableBundle) {
         super.onSaveInstanceState(outState, outPersistentState)
-        binding.webContainer.onSaveInstanceState(outState)
+        webContainer.onSaveInstanceState(outState)
     }
-    //固定写法
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        binding.webContainer.onActivityResult(requestCode, resultCode, data)
+        webContainer.onActivityResult(requestCode, resultCode, data)
+    }
 
-    }
-    //固定写法
-    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) {
-        binding.webContainer.startActivityForResult(requestCode)
-        super.startActivityForResult(intent, requestCode, options)
-    }
-//固定写法
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray,
-    ) {
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        binding.webContainer.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        webContainer.onRequestPermissionsResult(requestCode, permissions, grantResults)
+    }
+    
+    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) {
+        webContainer.startActivityForResult(requestCode)
+        super.startActivityForResult(intent, requestCode, options)
     }
 }
 ```
 
-## API
+---
 
-#### 初始化WebContainer
+## 核心 API 手册
 
-传入Activity以及LifecycleOwner
+在成功调用 `webContainer.init()` 完成运行环境注册后，组件暴露出贴合标准 Web 操作与深度劫持开发的核心方法。全套接口均基于清晰可见的设计与空安全声明。
 
-```Kotlin
-/*初始化(必须)*/
-webContainer.init(this, this)
-```
+### 1. 容器控制与操作集合
 
-#### 加载url
+这是 `CordovaWebContainer` 提供控制 WebView 展示、历史堆栈与清理机制的一等方法集合：
 
-```Kotlin
-/*必须*/
-webContainer.loadUrl(url)
-```
+| 方法名称与签名 | 参数 / 类型说明 | 描述详情 / 适用场景 |
+| ------ | :------: | ------ |
+| `init(activity, logLevel)` | `activity` (AppCompatActivity) <br/> `logLevel` (Int, 默认为ERROR) | 注册引擎、初始化插件列表和 JS 映射层。**这是任何操作的绝对前置前提**。 |
+| `loadUrl(url)` | `url` (String) | 指引底层容器加载指定的 `https://` 混合页面或 `file:///android_asset/...` 本地直装代码。 |
+| `reload()` | 无 | 强制触发当前网页的热更新/重新加载。 |
+| `canGoBack()` | 无 | 判断当前容器是否支持返回上一页的 H5 网页栈逻辑，返回可用布尔值。 |
+| `goBack()` | 无 | 触发系统 WebView 返回上一页（等同于浏览器返回键）。 |
+| `canGoForward()` | 无 | 判断当前容器能否前进到下一页，返回布尔值。 |
+| `goForward()` | 无 | 触发系统 WebView 前进动作。 |
+| `clearCache(includeDiskFiles)` | `includeDiskFiles` (Boolean) | 彻底清理 Web 容器产生的缓存。<br/>`includeDiskFiles` = true 时，将一并把磁盘中的旧静态资源持久化文件一并销毁。 |
+| `clearHistory()` | 无 | 一键清空当前 WebView 从被唤起至今累计的所有访问链与历史状态堆栈。 |
+| `setWebviewClient(client)` | `CordovaWebviewClient` 实例 | 更替或重写 WebClient 代理池，接管并干预包括离线缓存提取、自定义协议分发和 SSL 认证在内的高级网络生命周期。 |
+| `setWebviewChormeClient(client)` | `CordovaWebviewChormeClient` 实例 | 更替或重写 ChromeClient 代理，一般用于接手 H5 发起的系统级 Alert 处理、文件选取或精细控制 ProgressBar 的展示进度控制。 |
 
-#### 关键事件回调
 
-```kotlin
-webContainer.addPagePbserver(PageObserver)
-```
+### 2. 生命周期回调全景监听 (`PageObserver`)
 
-支持以下事件监听
-![image.png](assets/pageObserver.png)
+与生硬的基础 `WebViewClient` 不同，该模块重构了并入 Cordova 解析事件流与基础 JSBridge 信息的综合回传渠道。使用极为快捷的注入实现（`webContainer.addPageObserver()`）。
 
-#### 请求拦截处理
+| 接口侦听方法 | 传参解构说明 | 回调发生时机与推荐用途 |
+| ------ | ------ | ------ |
+| `onPageStarted(url)` | `url`：当前访问目的路劲。 | 视图开始构建但尚未渲染内容。**绝佳的显示顶部 LoadingBar 的契机**。 |
+| `onPageFinished(url)` | `url`：完成并落地的目的路径。 | 页面已加载完成。资源树已渲染稳定就绪。 |
+| `onProgressChanged(newProgress)` | `newProgress`：0-100。 | 资源加载百分比。用于为进度条不断填装递进而非只是假加载动画。 |
+| `onReceivedTitle(title)` | `title`：获取到的网页 Title 变量。 | 每当 DOM 结构动态变迁并读取到最新的 `<title>` 字段时，该值会自动送达，用于更新 Native Actionbar 面包屑。 |
+| `readyStateChange(state, url)` | `state`：loading, interactive, complete 几个维度的精准生命状态枚举值。<br/> `url`：发生地点。 | 基于 JS 层 `Document API` 极深维度的加载阶段探测。能在 Native 层面准确知道网页此时处在资源串流还是交互渲染完毕状态。 |
+| `onWindowError(url, msg, lineNo, columnNo)` | `msg`：未捕获异常具体错误内容。<br/> `lineNo` & `columnNo`：具体发生异常的行列代码指代。 | **非常关键的高级排错与容错接口**。它不仅截取标准 Web 错误，连底层的 JavaScript 匿名或内抛异常也会被此渠道精确勾取到，用于前端研发人员无缝定位或自动日志采集系统的崩溃推流。 |
+| `pluginExecute(plugnExecute)` | 包含对象属性 `service`(发起目标插件类别) 与 `action`(具体触发动作意图)。 | JSBridge 发起通信且恰好打在原生侧即将调度具体对应类方法前的**阻截观测事件**，适合编写业务调试追踪逻辑。 |
+| `pluginExecResult(plugnExecResult)` | 包含了原声处理后的 `status`(状态码) 和 `message`(处理成果)。 | 接上篇，当诸如`相机处理完成`并准备向 JS 回流抛投执行成果的一瞬间，你能在此拦截并获得具体的成果内容镜像数据。 |
 
-```kotlin
-/*可选拦截请求 等同于shouldInterceptRequest 记得用这个*/
-                webContainer.webviewClient.interceptRequest { view, request, response ->
-                    val url = request.url.toString()
-                    Log.i(TAG, "interceptRequest:$url")
-                    return@interceptRequest response
-                }
-```
+### 3. 请求劫持与协议定制扩展
 
-#### loadurl 处理
+借助对基础 Cordova 代理重放的高级 Kotlin Lambda DSL 包裹实现。你可以在无需侵入原有包核心代码的基础上干预一切基于加载阶段的事件网络与协议。
 
-```kotlin
-/*可选 处理准备load的url 等同于 shouldOverrideUrlLoading*/
-                webContainer.webviewClient.overrideUrlLoading { view, request ->
-                    Log.i(TAG, "overrideUrlLoading:${request.url}")
-                    request.url.toString().let {
-                        if (it.startsWith("baidu://")) {
-                            return@overrideUrlLoading true
-                        }
-                    }
-                    return@overrideUrlLoading false
-                }
-```
+**一、自定义特权协议分发劫持 (等同 `shouldOverrideUrlLoading`)**
 
-#### 滚动监听
+应用内可能会碰到使用 `<a href="yourapp://pay">` 来唤起支付宝、分享等特殊外链业务协议的情况。
 
 ```kotlin
-webContainer.setOnPageScrollChangedListener { xOffset, yOffset, oldxOffset, oldyOffset ->
-            Log.i(TAG, "yOffset:$yOffset,oldyOffset:$oldyOffset")
-        }
+webContainer.webviewClient.overrideUrlLoading { _, request ->
+    val uriStr = request.url.toString()
+    if (uriStr.startsWith("yourapp://action/")) {
+        // 在此处解析业务逻辑、切断 WebView 并且抛至外层去调起相应的原生 Activity 能力
+        // ...
+        
+        // 关键：消耗并拦截此非法基础网络的加载，防止发生 ERR_UNKNOWN_URL_SCHEME 崩溃
+        return@overrideUrlLoading true 
+    }
+    
+    // 返回 false 意味着自己对该类型的链接无兴趣，放给普通系统浏览器或内部逻辑处理
+    return@overrideUrlLoading false 
+}
 ```
 
-其他使用跟webview api一样
+**二、本地静态资源或跨域接口伪造代理 (等同 `shouldInterceptRequest`)**
 
-## 混淆
+可以为项目拦截所有 `png` 扩展的图片请求并指向工程自带的一套内置 `drawable` 高速解密模块等高复杂需求。
 
-组件内部已经添加如下混淆
-
-```Kotlin
-#Cordova
--keep class org.apache.cordova.**{*;}
--keep interface org.apache.cordova.**{*;}
--keep enum org.apache.cordova.**{*;}
+```kotlin
+webContainer.webviewClient.interceptRequest { _, request, response ->
+    val rawUrl = request.url.toString()
+    
+    if (rawUrl.contains("remote-censor.png")) {
+        // 在此处完全构造另一个 WebResourceResponse 覆盖，阻止真实的网络通讯
+        // return@interceptRequest myCustomWebResourceResponse
+    }
+    
+    // 如果返回普通的 response，Cordova 内核仍然有最后的干预权限（例如接管 https://localhost/ 白名单请求等）
+    return@interceptRequest response
+}
 ```
 
+---
+
+## 高级特性与安全配置
+
+在这套组件中，我们不仅关注灵活解耦，还为了应对各种复杂的网络与恶意代码执行场景，提供了深度的可控策略。
+
+### 1. 核心资源高性能自动注入 (`CordovaInject`)
+
+为了摆脱传统打包中需要在每个 HTML 里手动引入 `<script src="cordova.js"></script>` 的沉重历史包袱，组件内部封装了强大的**无感知自动注入器**：
+- **协程级异步解析**：在容器初始化的瞬间即在后台开启协程，将位于 `assets/www` 中的 `cordova.js` 及各种插件 `cordova_plugins.js` 加载并通过 Base64 编码常驻内存。
+- **页面生命周期智能拦截**：依靠对 `onPageStarted` 与 `onPageFinished` 的多重埋伏，当发现加载的 DOM 就绪后，会瞬间将存放在内存池内的底层逻辑环境直写至 WebView。
+- **配置与闭关**：注入完全默认开启无需操心。如果你需要开启日志监控注入性能，可以通过以下前置配置打开：
+  ```kotlin
+  // (需在组件实例化 init() 之前设定)
+  CordovaWebContainerConfig.isLogEnable = true
+  CordovaWebContainerConfig.CORDOVA_ASSET_DIR = "www" //默认资源目录
+  ```
+
+### 2. Cordova API 安全白名单防火墙 (`CordovaWhitelistInterceptor`)
+
+在部分需要动态加载外部（甚至不受信的公开 WebH5 内容）以混合展示的业务诉求下。放任外部 JS 直接调用底层任意原生的定位、拍照甚至本地持久化组件是非常危险的。
+为此，特别引入了安全白名单拦截能力，能有效阻止不受信的跨域域名滥用底层服务。
+
+```kotlin
+// 1. 在容器初始化（ webContainer.init(...) ）之前手动挂载这套安全引擎
+CordovaWebContainerConfig.ENABLE_CORDOVA_API_WHITELIST = true
+
+// 2. 注入你预定义的全局防御与域名白名单策略
+CordovaWebContainerConfig.cordovaWhitelistConfig = WhitelistConfig(
+    // 默认防线：对于所有未在下方名单中的域名发起的全部 Cordova 调用，是否全面予以放行？
+    defaultAllow = false,  // 推荐 false，执行最严格的拦截
+    
+    // 自定义针对部分白名单站点的特权放行策略
+    whitelist = listOf(
+        // 名单1：完全信赖本地打包加载的静态内容，赋予所有系统组件唤起特权
+        WhitelistRule(
+            domain = "file://.*", 
+            allowAllPlugins = true 
+        ),
+        // 名单2：针对某业务合作方的域名，只允许他们唤出相机和设备信息，其他底层行为绝对禁止！
+        WhitelistRule(
+            domain = "https://partner.trusted.com", 
+            allowAllPlugins = false, 
+            allowedPlugins = listOf("Camera", "Device")
+        )
+    ),
+    
+    // 如果拦截发生，允许配置一套 JSON 格式的固定应答下发回给前端
+    interceptResponse = """{"status":403,"message":"Access Denied by Host App"}"""
+)
+```
+
+---
+
+## ProGuard 代码混淆与构建
+
+请放心，核心 SDK AAR 内已经集成了声明式混淆规则，在大多数基础构建流下您**不需要**进行任何额外白板豁免配置。
+如果您所处的环境涉及极端的 AGP `R8` 完全模式并引起闪退时，请在您负责接入的 **宿主模块**（如主壳 App 项目）里的 `proguard-rules.pro` 中补充并释放包声明映射限制：
+
+```proguard
+# 保留 Apache Cordova 底层基础桥连映射类不被擦除改名
+-keep class org.apache.cordova.** { *; }
+-keep interface org.apache.cordova.** { *; }
+-keep enum org.apache.cordova.** { *; }
+```
+
+---
+
+## 开源许可证 (License)
+
+本项目基于 [Apache License 2.0](LICENSE) 协议开源分发及演进。

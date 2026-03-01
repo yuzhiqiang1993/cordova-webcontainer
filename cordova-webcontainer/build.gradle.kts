@@ -7,6 +7,7 @@ android {
     namespace = "com.yzq.cordova_webcontainer"
     defaultConfig {
         minSdk = 24
+        consumerProguardFiles("proguard-rules.pro")
     }
 }
 
