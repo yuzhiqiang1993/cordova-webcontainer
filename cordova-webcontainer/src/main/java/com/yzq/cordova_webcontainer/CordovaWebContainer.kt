@@ -15,9 +15,11 @@ import android.widget.RelativeLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import com.yzq.cordova_webcontainer.config.CordovaWebContainerConfig
 import com.yzq.cordova_webcontainer.core.CordovaJsInterface
 import com.yzq.cordova_webcontainer.core.CordovaWebviewChormeClient
 import com.yzq.cordova_webcontainer.core.CordovaWebviewClient
+import com.yzq.cordova_webcontainer.core.whitelist.CordovaWhitelistInterceptor
 import com.yzq.cordova_webcontainer.data.DocumentReadyState
 import com.yzq.cordova_webcontainer.observer.PageObserver
 import org.apache.cordova.Config
@@ -124,6 +126,13 @@ class CordovaWebContainer @JvmOverloads constructor(
             appView.init(cordovaInterface, pluginEntries, preferences)
         }
         cordovaInterface.onCordovaInit(appView.pluginManager)
+
+        // 初始化鉴权白名单拦截器
+        if (CordovaWebContainerConfig.ENABLE_CORDOVA_API_WHITELIST) {
+            CordovaWebContainerConfig.cordovaWhitelistConfig?.let {
+                appView.pluginManager.setApiInterceptor(CordovaWhitelistInterceptor(it))
+            }
+        }
 
         // Wire the hardware volume controls to control media if desired.
         val volumePref = preferences.getString("DefaultVolumeStream", "")
