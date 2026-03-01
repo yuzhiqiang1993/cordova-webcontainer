@@ -298,15 +298,11 @@ CordovaWebContainerConfig.cordovaWhitelistConfig = WhitelistConfig(
 
 ## ProGuard 代码混淆与构建
 
-请放心，核心 SDK AAR 内已经集成了声明式混淆规则，在大多数基础构建流下您**不需要**进行任何额外白板豁免配置。
-如果您所处的环境涉及极端的 AGP `R8` 完全模式并引起闪退时，请在您负责接入的 **宿主模块**（如主壳 App 项目）里的 `proguard-rules.pro` 中补充并释放包声明映射限制：
+**零配置防混淆介入**。
 
-```proguard
-# 保留 Apache Cordova 底层基础桥连映射类不被擦除改名
--keep class org.apache.cordova.** { *; }
--keep interface org.apache.cordova.** { *; }
--keep enum org.apache.cordova.** { *; }
-```
+从 `1.1.x` 起，核心组件内已**内置下发了完整的 Consumer ProGuard 豁免规则**。这不仅自动保留了 `org.apache.cordova.**` 底层类不被 R8 擦除，还一并完美豁免了所有含有 `@JavascriptInterface` 注解的反向反射隧道。
+
+在绝大多数工程集成下，宿主无需在任何地方修改额外的 `proguard-rules.pro` 亦可顺利完成生产包环境构建！
 
 ---
 
