@@ -13,24 +13,17 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         mavenLocal()
-        /*发布到snapshot仓库时使用*/
         maven {
-            url = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
+            url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+            mavenContent {
+                snapshotsOnly()
+            }
         }
     }
-
-//    versionCatalogs {
-//        create("libs") {
-////            from("com.xeonyu:version-catalog:0.0.4-SNAPSHOT")
-////            from("com.xeonyu:version-catalog:0.1.2")
-////            version("xeonCordovaLib", "12.0.2")
-////            version("xeonCordovaWebContainer", "1.0.5")
-//
-//        }
-//    }
 }
 
-//rootProject.name = "CordovaWebContainer"
+rootProject.name = "CordovaWebContainer"
 include(":app")
 include(":cordova-webcontainer")
-include(":cordova-lib")
+ include(":cordova-lib")
+ project(":cordova-lib").projectDir = File("../cordova-android/framework")

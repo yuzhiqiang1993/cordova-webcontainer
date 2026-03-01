@@ -5,6 +5,9 @@ plugins {
 
 android {
     namespace = "com.yzq.cordova_webcontainer"
+    defaultConfig {
+        minSdk = 24
+    }
 }
 
 dependencies {
@@ -12,6 +15,6 @@ dependencies {
     implementation(libs.androidx.activity.ktx.stable)
     implementation(libs.androidx.core.ktx.stable)
     implementation(libs.androidx.appcompat.stable)
-    api(libs.xeonyu.cordova.lib)
-//    api("com.xeonyu.cordova-lib:12.0.2")
+//    api(project(":cordova-lib"))
+    api(libs.xeonyu.cordova.android)
 }
