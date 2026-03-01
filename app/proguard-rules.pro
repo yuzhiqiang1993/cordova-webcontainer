@@ -70,10 +70,7 @@
 #-keep class androidx.** {*;}
 #-keep public class * extends androidx.**
 #-keep interface androidx.** {*;}
-#-keep class com.google.android.material.** {*;}
 #-dontwarn androidx.**
-#-dontwarn com.google.android.material.**
-#-dontnote com.google.android.material.**
 #
 ## 保持Activity中与View相关方法不被混淆
 #-keepclassmembers class * extends android.app.Activity{

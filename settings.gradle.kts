@@ -25,5 +25,5 @@ dependencyResolutionManagement {
 rootProject.name = "CordovaWebContainer"
 include(":app")
 include(":cordova-webcontainer")
- include(":cordova-lib")
- project(":cordova-lib").projectDir = File("../cordova-android/framework")
+// include(":cordova-lib")
+// project(":cordova-lib").projectDir = File("../cordova-android/framework")
