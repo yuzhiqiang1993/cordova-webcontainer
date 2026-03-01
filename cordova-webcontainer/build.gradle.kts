@@ -18,3 +18,14 @@ dependencies {
 //    api(project(":cordova-lib"))
     api(libs.xeonyu.cordova.android)
 }
+
+mavenPublishing {
+
+    publishToMavenCentral()
+
+    val versionName = project.findProperty("VERSION_NAME")?.toString() ?: ""
+    val isSnapshot = versionName.endsWith("SNAPSHOT", ignoreCase = true)
+    if (!isSnapshot) {
+        signAllPublications()
+    }
+}

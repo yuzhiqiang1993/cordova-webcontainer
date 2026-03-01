@@ -21,8 +21,8 @@ androidxAppcompat = "1.6.1"
 androidxConstraintlayout = "2.1.4"
 androidxCore = "1.13.0"
 material = "1.11.0"
-xeonLogger = "1.0.8"
-xeonCordovaAndroid = "14.0.1-SNAPSHOT"
+xeonLogger = "1.2.2"
+xeonCordovaAndroid = "14.0.1"
 
 [libraries]
 
