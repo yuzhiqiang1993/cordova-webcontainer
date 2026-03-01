@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.yzq.demo">
 
     <uses-feature
@@ -10,6 +11,8 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" /> <!-- Android 适配Android 11 -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"
+        tools:ignore="CoarseFineLocation" />
 
     <queries>
         <intent>
@@ -41,9 +44,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.CordovaWebContainer">
-        <activity
-            android:name="com.yzq.demo.activity.ViewPagerWebActivity"
-            android:exported="false" />
+
         <activity
             android:name="com.yzq.demo.activity.WebContainerActivity"
             android:exported="false" />
@@ -60,6 +61,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name="com.yzq.demo.activity.GeolocationTestActivity"
+            android:exported="false" />
 
         <provider
             android:name="org.apache.cordova.camera.FileProvider"

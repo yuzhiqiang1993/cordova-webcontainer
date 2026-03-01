@@ -29,8 +29,8 @@ class MainActivity : AppCompatActivity() {
             btnContainerActivitySample.setOnClickListener {
                 WebContainerActivity.startActivity(this@MainActivity)
             }
-            btnFragmentSample.setOnClickListener {
-                ViewPagerWebActivity.startActivity(this@MainActivity)
+            btnGeolocationSample.setOnClickListener {
+                GeolocationTestActivity.startActivity(this@MainActivity)
             }
             /* ---- 核心演示：初始化 CordovaWebContainer ---- */
             // 传入当前 Activity 以绑定生命周期

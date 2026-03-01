@@ -28,5 +28,10 @@
             name="android-package"
             value="org.apache.cordova.batterystatus.BatteryListener" />
     </feature>
+    <feature name="Geolocation">
+        <param
+            name="android-package"
+            value="org.apache.cordova.geolocation.Geolocation" />
+    </feature>
 
 </widget>

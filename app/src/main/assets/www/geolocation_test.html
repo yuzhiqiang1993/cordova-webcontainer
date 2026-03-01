@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地理定位测试</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            display: block;
+            width: 100%;
+        }
+
+        #log {
+            border: 1px solid #ccc;
+            padding: 10px;
+            background: #f9f9f9;
+            min-height: 200px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>地理定位测试</h1>
+
+<button onclick="getLocation(true)">获取当前位置 (高精度)</button>
+<button onclick="getLocation(false)">获取当前位置 (低精度)</button>
+<button onclick="startWatch()">监听位置变化 (watchPosition)</button>
+<button onclick="stopWatch()">停止监听 (clearWatch)</button>
+<button onclick="clearLog()">清空日志</button>
+
+<div id="log">日志将显示在这里...</div>
+
+<!-- 模拟手动引入 cordova.js -->
+<script type="text/javascript" src="cordova.js"></script>
+
+<script>
+    // 日志工具
+    function log(msg) {
+        const logDiv = document.getElementById('log');
+        const time = new Date().toLocaleTimeString();
+        logDiv.innerHTML += `[${time}] ${msg}\n`;
+        console.log(msg);
+    }
+
+    function clearLog() {
+        document.getElementById('log').innerHTML = '';
+    }
+
+    // 监听 Cordova 就绪事件
+    document.addEventListener("deviceready", onDeviceReady, false);
+
+    function onDeviceReady() {
+        log("Cordova 已就绪 (deviceready 事件触发)");
+    }
+
+    let watchId = null;
+
+    // 调用定位 API
+    function getLocation(isHighAccuracy) {
+        log(`正在请求位置 (高精度: ${isHighAccuracy})...`);
+
+        if (!navigator.geolocation) {
+            log('错误: 当前环境不支持 navigator.geolocation');
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                log('定位成功!');
+                printPosition(position);
+            },
+            (error) => {
+                printError(error);
+            }, {
+            enableHighAccuracy: isHighAccuracy,
+            timeout: 10000,
+            maximumAge: 0
+        }
+        );
+    }
+
+    // 监听位置变化
+    function startWatch() {
+        log('开始监听位置变化 (watchPosition)...');
+        if (!navigator.geolocation) {
+            log('错误: 当前环境不支持 navigator.geolocation');
+            return;
+        }
+
+        if (watchId !== null) {
+            log('已经在监听中了 (watchId: ' + watchId + ')');
+            return;
+        }
+
+        watchId = navigator.geolocation.watchPosition(
+            (position) => {
+                log('【位置更新】');
+                printPosition(position);
+            },
+            (error) => {
+                printError(error);
+            }, {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+        });
+        log('监听启动，watchId: ' + watchId);
+    }
+
+    // 停止监听
+    function stopWatch() {
+        if (!navigator.geolocation) return;
+        if (watchId !== null) {
+            log('停止监听 (watchId: ' + watchId + ')');
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+        } else {
+            log('当前没有活动的监听任务');
+        }
+    }
+
+    function printPosition(position) {
+        log(`纬度 (Latitude): ${position.coords.latitude}`);
+        log(`经度 (Longitude): ${position.coords.longitude}`);
+        log(`精度 (Accuracy): ${position.coords.accuracy} 米`);
+        log(`时间戳 (Timestamp): ${new Date(position.timestamp).toLocaleTimeString()}`);
+    }
+
+    function printError(error) {
+        log('定位失败!');
+        log(`错误代码 (Code): ${error.code}`);
+        log(`错误信息 (Message): ${error.message}`);
+        switch (error.code) {
+            case error.PERMISSION_DENIED:
+                log("用户拒绝了地理定位请求 (Permission Denied)。");
+                break;
+            case error.POSITION_UNAVAILABLE:
+                log("位置信息不可用 (Position Unavailable)。");
+                break;
+            case error.TIMEOUT:
+                log("获取用户位置请求超时 (Timeout)。");
+                break;
+            case error.UNKNOWN_ERROR:
+                log("发生了未知错误 (Unknown Error)。");
+                break;
+        }
+    }
+
+    // 检测 Cordova 注入状态
+    function checkCordovaStatus() {
+        log('--- Cordova 注入状态检测 ---');
+        log(`window.__cordovaInjected: ${window.__cordovaInjected || 'undefined'}`);
+        log(`typeof cordova: ${typeof cordova}`);
+
+        if (typeof cordova !== 'undefined') {
+            log(`cordova.version: ${cordova.version || '未知'}`);
+            log(`cordova.platformId: ${cordova.platformId || '未知'}`);
+            log('✅ Cordova 环境已就绪!');
+        } else {
+            log('❌ Cordova 环境未注入');
+        }
+
+        log(`navigator.geolocation 可用: ${"geolocation" in navigator}`);
+        log('--- 检测完毕 ---');
+    }
+
+    // 页面初始日志
+    if ("geolocation" in navigator) {
+        log("navigator 中包含 geolocation 对象");
+    } else {
+        log("navigator 中不包含 geolocation 对象");
+    }
+
+    // 延迟检测注入状态（给予足够时间让脚本执行）
+    setTimeout(checkCordovaStatus, 1000);
+</script>
+</body>
+
+</html>
