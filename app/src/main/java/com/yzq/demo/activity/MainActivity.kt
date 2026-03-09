@@ -4,7 +4,6 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.PersistableBundle
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.LifecycleOwner
 import com.yzq.cordova_webcontainer.observer.PageObserver
 import com.yzq.demo.databinding.ActivityMainBinding
 import org.apache.cordova.LOG
@@ -28,6 +27,9 @@ class MainActivity : AppCompatActivity() {
             }
             btnContainerActivitySample.setOnClickListener {
                 WebContainerActivity.startActivity(this@MainActivity)
+            }
+            btnFragmentSample.setOnClickListener {
+                FragmentSampleActivity.startActivity(this@MainActivity)
             }
             btnGeolocationSample.setOnClickListener {
                 GeolocationTestActivity.startActivity(this@MainActivity)

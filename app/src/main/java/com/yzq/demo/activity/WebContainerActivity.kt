@@ -153,15 +153,21 @@ class WebContainerActivity : CordovaWebContainerActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-//        val url = "https://baidu.com/"
+        val url = "https://vant-ui.github.io/vant/v2/mobile.html#/zh-CN/uploader"
 //        binding.webContainer.loadUrl(url)
-        binding.webContainer.loadUrl()
+        binding.webContainer.loadUrl(url)
         binding.webContainer.setOnPageScrollChangedListener { xOffset, yOffset, oldxOffset, oldyOffset ->
             Log.i(TAG, "yOffset:$yOffset,oldyOffset:$oldyOffset")
         }
         binding.reloadFab.setOnClickListener {
             binding.webContainer.reload()
 
+        }
+    }
+
+    override fun initWidget() {
+        binding.reloadFab.setOnClickListener {
+            binding.webContainer.reload()
         }
     }
 

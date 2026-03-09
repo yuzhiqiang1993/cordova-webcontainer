@@ -36,36 +36,31 @@
             android:visibility="gone" />
     </LinearLayout>
 
-    <androidx.cardview.widget.CardView
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_margin="16dp"
-        app:cardBackgroundColor="@color/white"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="6dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/app_bar">
 
-        <!--基于Cordova封装的web容器控件-->
-        <com.yzq.cordova_webcontainer.CordovaWebContainer
-            android:id="@+id/web_container"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-    </androidx.cardview.widget.CardView>
+    <!--基于Cordova封装的web容器控件-->
 
     <!--浮动按钮-->
+    <com.yzq.cordova_webcontainer.CordovaWebContainer
+        android:id="@+id/web_container"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/app_bar"
+        app:layout_constraintVertical_bias="0.0" />
+
     <ImageButton
         android:id="@+id/reload_fab"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
         android:layout_margin="24dp"
+        android:scaleType="centerInside"
         android:contentDescription="刷新"
         android:src="@drawable/refresh"
         android:backgroundTint="?attr/colorPrimary"
         android:elevation="8dp"
-        android:padding="12dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:tint="@color/white" />

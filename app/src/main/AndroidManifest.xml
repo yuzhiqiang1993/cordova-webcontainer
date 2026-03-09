@@ -49,6 +49,9 @@
             android:name="com.yzq.demo.activity.WebContainerActivity"
             android:exported="false" />
         <activity
+            android:name="com.yzq.demo.activity.FragmentSampleActivity"
+            android:exported="false" />
+        <activity
             android:name="com.yzq.demo.activity.CordovaDemoActivity"
             android:exported="false"
             android:theme="@style/Theme.App.SplashScreen" />
