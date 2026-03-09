@@ -67,17 +67,10 @@ abstract class CordovaWebContainerFragment : Fragment() {
         webContainer?.onSaveInstanceState(outState)
     }
 
-
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         webContainer?.onActivityResult(requestCode, resultCode, data)
 
-    }
-
-
-    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) {
-        webContainer?.startActivityForResult(requestCode)
-        super.startActivityForResult(intent, requestCode, options)
     }
 
     override fun onRequestPermissionsResult(

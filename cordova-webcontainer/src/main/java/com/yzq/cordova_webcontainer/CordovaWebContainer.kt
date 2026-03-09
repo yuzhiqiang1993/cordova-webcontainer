@@ -13,6 +13,7 @@ import android.webkit.JavascriptInterface
 import android.widget.FrameLayout
 import android.widget.RelativeLayout
 import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.yzq.cordova_webcontainer.config.CordovaWebContainerConfig
@@ -26,6 +27,7 @@ import com.yzq.cordova_webcontainer.observer.PageObserver
 import org.apache.cordova.Config
 import org.apache.cordova.ConfigXmlParser
 import org.apache.cordova.CordovaInterfaceImpl
+import org.apache.cordova.CordovaPlugin
 import org.apache.cordova.CordovaPreferences
 import org.apache.cordova.CordovaWebView
 import org.apache.cordova.CordovaWebViewEngine
@@ -62,6 +64,7 @@ class CordovaWebContainer @JvmOverloads constructor(
 
     private val documentJsInterface: CordovaJsInterface = DocumentJsInterface()
     lateinit var hostActivity: AppCompatActivity
+    var hostFragment: Fragment? = null
 
     private var pageTitle: String = ""
 
@@ -99,6 +102,11 @@ class CordovaWebContainer @JvmOverloads constructor(
         get() = _webChromeClient
 
     private var cordovaInject: CordovaInject? = null
+
+    fun init(fragment: Fragment, logLevel: Int = LOG.ERROR) {
+        this.hostFragment = fragment
+        init(fragment.requireActivity() as AppCompatActivity, logLevel)
+    }
 
     fun init(appCompatActivity: AppCompatActivity, logLevel: Int = LOG.ERROR) {
         if (isInitialized.get()) {
@@ -290,9 +298,43 @@ class CordovaWebContainer @JvmOverloads constructor(
      * @return
      */
     private fun makeCordovaInterface(): CordovaInterfaceImpl {
-        return object : CordovaInterfaceImpl(hostActivity) {
+        val contextActivity = hostActivity
+        val currentFragment = hostFragment
+
+        return object : CordovaInterfaceImpl(contextActivity) {
             override fun onMessage(id: String, data: Any?): Any {
                 return handlePluginMessage(id, data)
+            }
+
+            override fun requestPermissions(
+                plugin: CordovaPlugin,
+                requestCode: Int,
+                permissions: Array<out String>
+            ) {
+                val mappedRequestCode = permissionResultCallbacks.registerCallback(plugin, requestCode)
+                if (currentFragment != null) {
+                    currentFragment.requestPermissions(permissions, mappedRequestCode)
+                } else {
+                    super.requestPermissions(plugin, requestCode, permissions)
+                }
+            }
+
+            override fun startActivityForResult(
+                command: CordovaPlugin,
+                intent: Intent,
+                requestCode: Int
+            ) {
+                setActivityResultCallback(command)
+                try {
+                    if (currentFragment != null) {
+                        currentFragment.startActivityForResult(intent, requestCode)
+                    } else {
+                        super.startActivityForResult(command, intent, requestCode)
+                    }
+                } catch (e: RuntimeException) {
+                    activityResultCallback = null
+                    throw e
+                }
             }
         }
     }
