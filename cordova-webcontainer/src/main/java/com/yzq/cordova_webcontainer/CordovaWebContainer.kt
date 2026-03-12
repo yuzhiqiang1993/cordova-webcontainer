@@ -311,8 +311,8 @@ class CordovaWebContainer @JvmOverloads constructor(
                 requestCode: Int,
                 permissions: Array<out String>
             ) {
-                val mappedRequestCode = permissionResultCallbacks.registerCallback(plugin, requestCode)
                 if (currentFragment != null) {
+                    val mappedRequestCode = permissionResultCallbacks.registerCallback(plugin, requestCode)
                     currentFragment.requestPermissions(permissions, mappedRequestCode)
                 } else {
                     super.requestPermissions(plugin, requestCode, permissions)
@@ -324,9 +324,9 @@ class CordovaWebContainer @JvmOverloads constructor(
                 intent: Intent,
                 requestCode: Int
             ) {
-                setActivityResultCallback(command)
                 try {
                     if (currentFragment != null) {
+                        setActivityResultCallback(command)
                         currentFragment.startActivityForResult(intent, requestCode)
                     } else {
                         super.startActivityForResult(command, intent, requestCode)
