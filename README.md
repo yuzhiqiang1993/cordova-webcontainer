@@ -2,17 +2,17 @@
 
 [![Maven Central](https://img.shields.io/maven-central/v/com.xeonyu/cordova-webcontainer.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:com.xeonyu%20AND%20a:cordova-webcontainer)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![API](https://img.shields.io/badge/API-21%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=21)
+[![API](https://img.shields.io/badge/API-24%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=24)
 
 一个轻量、现代且易于嵌入的 Android Cordova Web 容器组件库。
 
-本项目基于 Android 端官方的 CordovaLib 进行深度二次封装。其**核心目的**在于解决传统 Cordova 开发中宿主**必须强行继承 `CordovaActivity` 所带来的 UI 僵化与极高耦合度问题**。在这个库中，底层引擎的初始化与交互被解耦收拢到一个普通的 `RelativeLayout` 自定义 View 中。这让你能在保留 Cordova 原有插件生态与强大双端通信交互能力的前提下，像使用原生 `WebView` 一样，将其无比灵活地无缝嵌套在任何 `Activity`、`Fragment` 甚至复杂的折叠屏/侧滑布局中。同时，我们在原生机制上拓展了更加丰富且容易上手的声明式回调，轻松胜任各种混合开发验证与独立 Web 业务场景。
+本项目基于**定制版** `cordova-android` 进行二次封装。其**核心目的**在于解决传统 Cordova 开发中宿主**必须强行继承 `CordovaActivity` 所带来的 UI 僵化与极高耦合度问题**。在这个库中，底层引擎的初始化与交互被解耦收拢到一个普通的 `RelativeLayout` 自定义 View 中。这让你能在保留 Cordova 原有插件生态与强大双端通信交互能力的前提下，像使用原生 `WebView` 一样，将其灵活地嵌套在 `Activity`、`Fragment` 甚至复杂的折叠屏/侧滑布局中。同时，我们在原生机制上拓展了更容易上手的声明式回调，轻松胜任各种混合开发验证与独立 Web 业务场景。
 
 ## 核心优势
 
 - **极致灵活**: 细粒度组件化设计，打破 Activity 继承约束，提供 View 级的最小侵入集成方案。
 - **开箱即用**: 提供经过验证的最佳实践基类 (`CordovaWebContainerActivity`, `CordovaWebContainerFragment`) 供快速继承使用。
-- **现代化架构**: 原生 AndroidX 兼容及优质的 Kotlin API 侧封装，处理繁重的手动生命周期与事件分发分发。
+- **现代化架构**: 原生 AndroidX 兼容及 Kotlin API 侧封装，处理繁重的手动生命周期与事件分发。
 - **多维侦听器**: 扩展了页面进度、标题获取、HTML Document API 级别的 `readyStateChange` 以及底层 JS 异常追踪机制。
 - **透明式请求拦截**: 提供极简的闭包 API 以拦截资源请求与自定义协议劫持 (`overrideUrlLoading` / `interceptRequest`)。
 
@@ -109,8 +109,72 @@ class WebContainerActivity : CordovaWebContainerActivity() {
 }
 ```
 
-> **注意：如何在 Fragment 中使用？**
-> 对于侧滑、底部导航栏等复杂场景，可以直接继承 `CordovaWebContainerFragment`。它的生命周期要求与使用 API 和上述 Activity 版本完全一致。由于 Cordova 权限机制依赖组件的顶层交互，**必须在 Fragment 的宿主 Activity 中向该下级 Fragment 手动分发** `onActivityResult` 和 `onRequestPermissionsResult` 方法，确保系统相册、相机或定位弹窗等插件权限得以畅通回传。
+**3. 在 Fragment 中使用（完整示例）**
+
+适合底部导航、多 tab、侧滑容器等场景。推荐直接继承 `CordovaWebContainerFragment`，并在 Fragment 内调用 `webContainer.init(this)`。
+
+**Host Activity（仅负责承载 Fragment）**
+
+```kotlin
+class FragmentSampleActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_fragment_sample)
+        if (savedInstanceState == null) {
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, VantUploaderFragment.newInstance())
+                .commit()
+        }
+    }
+}
+```
+
+**Fragment（继承基类并初始化容器）**
+
+```kotlin
+class VantUploaderFragment : CordovaWebContainerFragment() {
+    private var _binding: FragmentVantUploaderBinding? = null
+    private val binding get() = checkNotNull(_binding)
+
+    companion object {
+        fun newInstance() = VantUploaderFragment()
+    }
+
+    override fun initContentView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentVantUploaderBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun initWebContainer(): CordovaWebContainer {
+        return binding.webContainer.apply {
+            init(this@VantUploaderFragment, LOG.VERBOSE)
+            addPageObserver(object : PageObserver {
+                override fun onReceivedTitle(title: String) {
+                    // 例如：同步标题到宿主 Activity Toolbar
+                }
+            })
+        }
+    }
+
+    override fun initWidget() {
+        binding.webContainer.loadUrl("https://vant-ui.github.io/vant/v2/mobile.html#/zh-CN/uploader")
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+}
+```
+
+**回调分发说明（重要）**
+
+- 当前版本中，`CordovaWebContainer` 在 Fragment 模式下会通过 Fragment 发起权限请求和 `startActivityForResult`，因此常规场景**不需要**在宿主 Activity 手动转发 `onActivityResult/onRequestPermissionsResult`。
+- 如果宿主 Activity 重写了这些系统回调，请确保调用 `super`，否则 FragmentManager 无法把回调继续分发给子 Fragment。
 
 ---
 
@@ -138,8 +202,8 @@ class MainActivity : AppCompatActivity() {
 
     // --- 必须手动分发的生命周期与系统事件 (标准固定样板) ---
     
-    override fun onSaveInstanceState(outState: Bundle, outPersistentState: PersistableBundle) {
-        super.onSaveInstanceState(outState, outPersistentState)
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
         webContainer.onSaveInstanceState(outState)
     }
 
@@ -172,7 +236,8 @@ class MainActivity : AppCompatActivity() {
 
 | 方法名称与签名 | 参数 / 类型说明 | 描述详情 / 适用场景 |
 | ------ | :------: | ------ |
-| `init(activity, logLevel)` | `activity` (AppCompatActivity) <br/> `logLevel` (Int, 默认为ERROR) | 注册引擎、初始化插件列表和 JS 映射层。**这是任何操作的绝对前置前提**。 |
+| `init(activity, logLevel)` | `activity` (AppCompatActivity) <br/> `logLevel` (Int, 默认为ERROR) | 在 Activity 场景下注册引擎、初始化插件列表和 JS 映射层。**这是任何操作的绝对前置前提**。 |
+| `init(fragment, logLevel)` | `fragment` (Fragment) <br/> `logLevel` (Int, 默认为ERROR) | 在 Fragment 场景下初始化容器，内部会绑定 `fragment.requireActivity()` 并走 Fragment 的权限/回调分发链路。 |
 | `loadUrl(url)` | `url` (String) | 指引底层容器加载指定的 `https://` 混合页面或 `file:///android_asset/...` 本地直装代码。 |
 | `reload()` | 无 | 强制触发当前网页的热更新/重新加载。 |
 | `canGoBack()` | 无 | 判断当前容器是否支持返回上一页的 H5 网页栈逻辑，返回可用布尔值。 |
@@ -191,14 +256,14 @@ class MainActivity : AppCompatActivity() {
 
 | 接口侦听方法 | 传参解构说明 | 回调发生时机与推荐用途 |
 | ------ | ------ | ------ |
-| `onPageStarted(url)` | `url`：当前访问目的路劲。 | 视图开始构建但尚未渲染内容。**绝佳的显示顶部 LoadingBar 的契机**。 |
+| `onPageStarted(url)` | `url`：当前访问目的路径。 | 视图开始构建但尚未渲染内容。**绝佳的显示顶部 LoadingBar 的契机**。 |
 | `onPageFinished(url)` | `url`：完成并落地的目的路径。 | 页面已加载完成。资源树已渲染稳定就绪。 |
 | `onProgressChanged(newProgress)` | `newProgress`：0-100。 | 资源加载百分比。用于为进度条不断填装递进而非只是假加载动画。 |
 | `onReceivedTitle(title)` | `title`：获取到的网页 Title 变量。 | 每当 DOM 结构动态变迁并读取到最新的 `<title>` 字段时，该值会自动送达，用于更新 Native Actionbar 面包屑。 |
 | `readyStateChange(state, url)` | `state`：loading, interactive, complete 几个维度的精准生命状态枚举值。<br/> `url`：发生地点。 | 基于 JS 层 `Document API` 极深维度的加载阶段探测。能在 Native 层面准确知道网页此时处在资源串流还是交互渲染完毕状态。 |
 | `onWindowError(url, msg, lineNo, columnNo)` | `msg`：未捕获异常具体错误内容。<br/> `lineNo` & `columnNo`：具体发生异常的行列代码指代。 | **非常关键的高级排错与容错接口**。它不仅截取标准 Web 错误，连底层的 JavaScript 匿名或内抛异常也会被此渠道精确勾取到，用于前端研发人员无缝定位或自动日志采集系统的崩溃推流。 |
 | `pluginExecute(plugnExecute)` | 包含对象属性 `service`(发起目标插件类别) 与 `action`(具体触发动作意图)。 | JSBridge 发起通信且恰好打在原生侧即将调度具体对应类方法前的**阻截观测事件**，适合编写业务调试追踪逻辑。 |
-| `pluginExecResult(plugnExecResult)` | 包含了原声处理后的 `status`(状态码) 和 `message`(处理成果)。 | 接上篇，当诸如`相机处理完成`并准备向 JS 回流抛投执行成果的一瞬间，你能在此拦截并获得具体的成果内容镜像数据。 |
+| `pluginExecResult(plugnExecResult)` | 包含了原生处理后的 `status`(状态码) 和 `message`(处理成果)。 | 接上篇，当诸如`相机处理完成`并准备向 JS 回流抛投执行成果的一瞬间，你能在此拦截并获得具体的成果内容镜像数据。 |
 
 ### 3. 请求劫持与协议定制扩展
 
@@ -253,7 +318,7 @@ webContainer.webviewClient.interceptRequest { _, request, response ->
 为了摆脱传统打包中需要在每个 HTML 里手动引入 `<script src="cordova.js"></script>` 的沉重历史包袱，组件内部封装了强大的**无感知自动注入器**：
 - **协程级异步解析**：在容器初始化的瞬间即在后台开启协程，将位于 `assets/www` 中的 `cordova.js` 及各种插件 `cordova_plugins.js` 加载并通过 Base64 编码常驻内存。
 - **页面生命周期智能拦截**：依靠对 `onPageStarted` 与 `onPageFinished` 的多重埋伏，当发现加载的 DOM 就绪后，会瞬间将存放在内存池内的底层逻辑环境直写至 WebView。
-- **配置与闭关**：注入完全默认开启无需操心。如果你需要开启日志监控注入性能，可以通过以下前置配置打开：
+- **配置与开关**：注入默认开启。如果你需要开启日志监控注入性能，可以通过以下前置配置打开：
   ```kotlin
   // (需在组件实例化 init() 之前设定)
   CordovaWebContainerConfig.isLogEnable = true
@@ -271,14 +336,11 @@ CordovaWebContainerConfig.ENABLE_CORDOVA_API_WHITELIST = true
 
 // 2. 注入你预定义的全局防御与域名白名单策略
 CordovaWebContainerConfig.cordovaWhitelistConfig = WhitelistConfig(
-    // 是否启用白名单（false 时所有 API 均可调用，即不拦截）
-    enable = true,
-    
     // 信任的域名列表（逗号分隔），匹配该列表中域名的页面将拥有所有 API 权限
-    trustedDomains = "file://, trusted.partner.com",
+    trustedDomains = "localhost, trusted.partner.com",
     
     // 全局放行的 API 列表（如 "Geolocation/*" 放行该插件所有动作，"Camera/takePicture" 精确放行动作）
-    trustedApis = listOf("Device/*", "NetworkStatus/*"),
+    trustedApis = listOf("Geolocation/*"),
     
     // 细粒度的域名规则：针对特定域名，细化其被允许调用的 API 列表
     rules = listOf(
@@ -290,6 +352,8 @@ CordovaWebContainerConfig.cordovaWhitelistConfig = WhitelistConfig(
     )
 )
 ```
+
+> 说明：当前版本真正生效的是 `CordovaWebContainerConfig.ENABLE_CORDOVA_API_WHITELIST`。`WhitelistConfig.enable` 字段目前是保留字段，不参与拦截判断。
 
 ---
 
