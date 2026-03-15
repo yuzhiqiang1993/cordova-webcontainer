@@ -52,7 +52,7 @@ class MainActivity : AppCompatActivity() {
             })
 
             /* ---- 加载目标连接 ---- */
-            webContainer.loadUrl()
+            webContainer.loadDefaultUrl()
         }
 
     }

@@ -15,8 +15,8 @@ import android.widget.FrameLayout
 import android.widget.RelativeLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import com.yzq.cordova_webcontainer.config.ConfigBridge
 import com.yzq.cordova_webcontainer.config.CordovaWebContainerConfig
 import com.yzq.cordova_webcontainer.core.CordovaJsInterface
 import com.yzq.cordova_webcontainer.core.CordovaWebviewChromeClient
@@ -24,9 +24,12 @@ import com.yzq.cordova_webcontainer.core.CordovaWebviewClient
 import com.yzq.cordova_webcontainer.core.injection.CordovaInject
 import com.yzq.cordova_webcontainer.core.whitelist.CordovaWhitelistInterceptor
 import com.yzq.cordova_webcontainer.data.DocumentReadyState
+import com.yzq.cordova_webcontainer.lifecycle.HostLifecycleBinder
+import com.yzq.cordova_webcontainer.message.PluginMessageHost
+import com.yzq.cordova_webcontainer.message.PluginMessageRouter
 import com.yzq.cordova_webcontainer.observer.PageObserver
 import com.yzq.cordova_webcontainer.observer.PageObserverDispatcher
-import org.apache.cordova.Config
+import com.yzq.cordova_webcontainer.state.ContainerStateController
 import org.apache.cordova.ConfigXmlParser
 import org.apache.cordova.CordovaInterfaceImpl
 import org.apache.cordova.CordovaPlugin
@@ -37,8 +40,6 @@ import org.apache.cordova.CordovaWebViewImpl
 import org.apache.cordova.LOG
 import org.apache.cordova.PluginEntry
 import org.apache.cordova.customer.constant.PluginMessageId
-import org.apache.cordova.customer.data.PlugnExecResult
-import org.apache.cordova.customer.data.PlugnExecute
 import org.apache.cordova.customer.listener.PageScrollChangedListener
 import org.apache.cordova.engine.SystemWebView
 import org.apache.cordova.engine.SystemWebViewEngine
@@ -55,65 +56,92 @@ class CordovaWebContainer @JvmOverloads constructor(
     defStyleAttr: Int = 0,
 ) : RelativeLayout(context, attrs, defStyleAttr) {
 
-
     companion object {
         const val TAG = "CordovaWebContainer"
     }
 
-    private var isInitialized = false
-
-
+    private val stateController = ContainerStateController(TAG)
     private val documentJsInterface: CordovaJsInterface = DocumentJsInterface()
-    lateinit var hostActivity: AppCompatActivity
-    var hostFragment: Fragment? = null
+    private val pageObserverDispatcher = PageObserverDispatcher()
+
+    private lateinit var hostActivity: AppCompatActivity
+    private var hostFragment: Fragment? = null
     private lateinit var hostLifecycleOwner: LifecycleOwner
-
-    private var pageTitle: String = ""
-
-    // The webview for our app
     private lateinit var appView: CordovaWebView
-
-    // Keep app running when pause is received. (default = true)
-    // If true, then the JavaScript and native code continue to run in the background
-    // when another application (activity) is started.
-    private var keepRunning = true
-
-    // 从 config.xml 读取的配置
     private lateinit var preferences: CordovaPreferences
     private lateinit var launchUrl: String
     private lateinit var pluginEntries: ArrayList<PluginEntry>
     private lateinit var cordovaInterface: ContainerCordovaInterface
+    private lateinit var _webViewEngine: SystemWebViewEngine
+    private lateinit var _webviewClient: CordovaWebviewClient
+    private lateinit var _webChromeClient: CordovaWebviewChromeClient
+    private lateinit var resultCoordinator: ActivityResultCoordinator
 
+    private var pageTitle: String = ""
+    private var keepRunning = true
+    private var cordovaInject: CordovaInject? = null
+    private var deferredRestoreState: Bundle? = null
 
-    private val pageObserverDispatcher = PageObserverDispatcher()
+    val activity: AppCompatActivity
+        get() = hostActivity
+
+    val fragment: Fragment?
+        get() = hostFragment
+
     val webview: SystemWebView
         get() = appView.view as SystemWebView
 
-
-    private lateinit var _webViewEngine: SystemWebViewEngine
     val webViewEngine: SystemWebViewEngine
         get() = _webViewEngine
 
-    private lateinit var _webviewClient: CordovaWebviewClient
-    val webviewClient
+    val webviewClient: CordovaWebviewClient
         get() = _webviewClient
 
-
-    private lateinit var _webChromeClient: CordovaWebviewChromeClient
-    val webChromeClient
+    val webChromeClient: CordovaWebviewChromeClient
         get() = _webChromeClient
 
-    private var cordovaInject: CordovaInject? = null
-    private var deferredRestoreState: Bundle? = null
-    private lateinit var resultCoordinator: ActivityResultCoordinator
+    private val messageHost = object : PluginMessageHost {
+        override val launchUrl: String
+            get() = this@CordovaWebContainer.launchUrl
+
+        override var pageTitle: String
+            get() = this@CordovaWebContainer.pageTitle
+            set(value) {
+                this@CordovaWebContainer.pageTitle = value
+            }
+
+        override val pageObserverDispatcher: PageObserverDispatcher
+            get() = this@CordovaWebContainer.pageObserverDispatcher
+
+        override fun onPageStarted() {
+            injectDocumentHooks()
+        }
+
+        override fun onPageFinished() {
+            loadDocumentTitle()
+        }
+
+        override fun onReadyStateChange(data: Any?) {
+            this@CordovaWebContainer.notifyReadyStateObservers(data)
+        }
+
+        override fun onReceivedError(data: Any?) {
+            this@CordovaWebContainer.onReceivedError(data)
+        }
+
+        override fun onWindowError(data: Any?) {
+            this@CordovaWebContainer.onWindowError(data)
+        }
+    }
+    private val messageRouter = PluginMessageRouter(messageHost)
 
     fun init(fragment: Fragment, logLevel: Int = LOG.ERROR) {
         init(fragment, null, logLevel)
     }
 
     fun init(fragment: Fragment, savedInstanceState: Bundle?, logLevel: Int = LOG.ERROR) {
-        this.hostFragment = fragment
-        this.hostLifecycleOwner = fragment.viewLifecycleOwner
+        hostFragment = fragment
+        hostLifecycleOwner = fragment.viewLifecycleOwner
         init(fragment.requireActivity() as AppCompatActivity, savedInstanceState, logLevel)
     }
 
@@ -126,40 +154,62 @@ class CordovaWebContainer @JvmOverloads constructor(
         savedInstanceState: Bundle?,
         logLevel: Int = LOG.ERROR,
     ) {
-        if (isInitialized) {
+        if (!stateController.beginInit()) {
             return
         }
-        isInitialized = true
-        hostActivity = appCompatActivity
-        if (!this::hostLifecycleOwner.isInitialized) {
-            hostLifecycleOwner = appCompatActivity
+
+        try {
+            hostActivity = appCompatActivity
+            if (!this::hostLifecycleOwner.isInitialized) {
+                hostLifecycleOwner = appCompatActivity
+            }
+
+            val initialRestoreState = savedInstanceState ?: deferredRestoreState
+            deferredRestoreState = null
+
+            loadConfig()
+            LOG.setLogLevel(logLevel)
+            LOG.i(
+                TAG,
+                "init: Apache Cordova native platform version ${CordovaWebView.CORDOVA_VERSION} is starting"
+            )
+            cordovaInterface = makeCordovaInterface()
+            resultCoordinator = ActivityResultCoordinator(
+                hostActivity = hostActivity,
+                hostLifecycleOwner = hostLifecycleOwner,
+                launcherKeyFactory = ::buildLauncherKey,
+                delegate = cordovaInterface,
+                logTag = TAG,
+            )
+            resultCoordinator.prepare(initialRestoreState)
+            initWebView()
+
+            stateController.markReady()
+            LOG.i(TAG, "CordovaWebContainer init complete")
+        } catch (t: Throwable) {
+            handleInitFailure(t)
+            throw t
         }
-
-        val initialRestoreState = savedInstanceState ?: deferredRestoreState
-        deferredRestoreState = null
-
-        // 读取config.xml配置
-        loadConfig()
-//        val logLevel = preferences.getString("loglevel", "ERROR")
-        LOG.setLogLevel(logLevel)
-        LOG.i(
-            TAG,
-            "init: Apache Cordova native platform version ${CordovaWebView.CORDOVA_VERSION} is starting"
-        )
-        cordovaInterface = makeCordovaInterface()
-        resultCoordinator = ActivityResultCoordinator(
-            hostActivity = hostActivity,
-            hostLifecycleOwner = hostLifecycleOwner,
-            launcherKeyFactory = ::buildLauncherKey,
-            delegate = cordovaInterface,
-            logTag = TAG,
-        )
-        resultCoordinator.prepare(initialRestoreState)
-        /*初始化webview*/
-        initWebView()
-        LOG.i(TAG, "CordovaWebContainer init complete")
     }
 
+    private fun handleInitFailure(error: Throwable) {
+        runCatching {
+            if (this::appView.isInitialized) {
+                appView.handleDestroy()
+            }
+        }
+        runCatching { cordovaInject?.destroy() }
+        if (this::resultCoordinator.isInitialized) {
+            resultCoordinator.clear()
+        }
+        if (this::cordovaInterface.isInitialized) {
+            cordovaInterface.clearActivityResultState()
+        }
+        cordovaInject = null
+        deferredRestoreState = null
+        stateController.markDestroyed()
+        LOG.e(TAG, "CordovaWebContainer init failed", error)
+    }
 
     private fun initWebView() {
         appView = makeWebView()
@@ -169,20 +219,17 @@ class CordovaWebContainer @JvmOverloads constructor(
         }
         resultCoordinator.onWebViewInitialized(appView.pluginManager)
 
-        // 初始化鉴权白名单拦截器
         if (CordovaWebContainerConfig.ENABLE_CORDOVA_API_WHITELIST) {
             CordovaWebContainerConfig.cordovaWhitelistConfig?.let {
                 appView.pluginManager.setApiInterceptor(CordovaWhitelistInterceptor(it))
             }
         }
 
-        // Wire the hardware volume controls to control media if desired.
         val volumePref = preferences.getString("DefaultVolumeStream", "")
         if ("media" == volumePref.lowercase()) {
             hostActivity.volumeControlStream = AudioManager.STREAM_MUSIC
         }
 
-        // 初始化前端自动注入
         cordovaInject = CordovaInject(hostActivity, this)
 
         _webviewClient = CordovaWebviewClient(webViewEngine)
@@ -194,67 +241,39 @@ class CordovaWebContainer @JvmOverloads constructor(
 
         _webChromeClient = CordovaWebviewChromeClient(webViewEngine)
         webview.webChromeClient = _webChromeClient
+        webview.addJavascriptInterface(documentJsInterface, documentJsInterface.getJsName())
 
-        addJavascriptInterface(documentJsInterface)
-
-        /*处理宿主的生命周期*/
-        handleHostLifecycle()
-
-
+        HostLifecycleBinder(
+            owner = hostLifecycleOwner,
+            activity = hostActivity,
+            pageObserverDispatcher = pageObserverDispatcher,
+            onStart = { appView.handleStart() },
+            onResume = { appView.handleResume(keepRunning) },
+            onPause = {
+                val keepRunningNew = keepRunning || cordovaInterface.hasActivityResultCallback()
+                appView.handlePause(keepRunningNew)
+            },
+            onStop = { appView.handleStop() },
+            onDestroy = ::destroyContainer,
+        ).bind()
     }
 
     fun setWebviewClient(webviewClient: CordovaWebviewClient) {
+        stateController.requireReady()
         _webviewClient = webviewClient
         webview.webViewClient = _webviewClient
     }
 
     fun setWebviewChromeClient(webviewChromeClient: CordovaWebviewChromeClient) {
+        stateController.requireReady()
         _webChromeClient = webviewChromeClient
         webview.webChromeClient = _webChromeClient
     }
 
     fun addJavascriptInterface(jsInterface: CordovaJsInterface) {
+        stateController.requireReady()
         webview.addJavascriptInterface(jsInterface, jsInterface.getJsName())
     }
-
-    /**
-     * Handle host lifecycle
-     * 宿主的生命周期处理
-     */
-    private fun handleHostLifecycle() {
-        hostLifecycleOwner.lifecycle.addObserver(object : DefaultLifecycleObserver {
-            override fun onCreate(owner: LifecycleOwner) {
-                pageObserverDispatcher.onHostCreate(owner, hostActivity)
-            }
-
-            override fun onStart(owner: LifecycleOwner) {
-                appView.handleStart()
-                pageObserverDispatcher.onHostStart(owner, hostActivity)
-            }
-
-            override fun onResume(owner: LifecycleOwner) {
-                appView.handleResume(keepRunning)
-                pageObserverDispatcher.onHostResume(owner, hostActivity)
-            }
-
-            override fun onPause(owner: LifecycleOwner) {
-                val keepRunningNew = keepRunning || cordovaInterface.hasActivityResultCallback()
-                appView.handlePause(keepRunningNew)
-                pageObserverDispatcher.onHostPause(owner, hostActivity)
-            }
-
-            override fun onStop(owner: LifecycleOwner) {
-                appView.handleStop()
-                pageObserverDispatcher.onHostStop(owner, hostActivity)
-            }
-
-            override fun onDestroy(owner: LifecycleOwner) {
-                pageObserverDispatcher.onHostDestroy(owner, hostActivity)
-                destroyContainer()
-            }
-        })
-    }
-
 
     private fun loadConfig() {
         val parser = ConfigXmlParser()
@@ -263,27 +282,21 @@ class CordovaWebContainer @JvmOverloads constructor(
         preferences.setPreferencesBundle(hostActivity.intent.extras)
         launchUrl = parser.launchUrl
         pluginEntries = parser.pluginEntries
-        //        Config.parser = parser;
-        kotlin.runCatching {
-            val parserField = Config::class.java.getDeclaredField("parser")
-            parserField.isAccessible = true
-            parserField[null] = parser
-        }
+        ConfigBridge.setupConfig(parser)
     }
 
     @SuppressLint("ResourceType")
     private fun createViews() {
-        /*源码这里设置了个id 不知道有啥用*/
-        appView.view.id = 100
+        appView.view.id = View.generateViewId()
         appView.view.layoutParams = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT
+            ViewGroup.LayoutParams.MATCH_PARENT,
         )
 
         removeAllViews()
-        this.addView(
+        addView(
             appView.view,
-            LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
         )
         if (preferences.contains("BackgroundColor")) {
             kotlin.runCatching {
@@ -291,16 +304,9 @@ class CordovaWebContainer @JvmOverloads constructor(
                 appView.view.setBackgroundColor(backgroundColor)
             }
         }
-        /*获取焦点*/
         appView.view.requestFocusFromTouch()
     }
 
-
-    /**
-     * 创建的webview对象
-     *
-     * @return CordovaWebView
-     */
     private fun makeWebView(): CordovaWebView {
         return CordovaWebViewImpl(makeWebViewEngine())
     }
@@ -311,11 +317,6 @@ class CordovaWebContainer @JvmOverloads constructor(
         return _webViewEngine
     }
 
-    /**
-     * 接收插件发送的消息
-     *
-     * @return
-     */
     private fun makeCordovaInterface(): ContainerCordovaInterface {
         return ContainerCordovaInterface(hostActivity)
     }
@@ -343,6 +344,7 @@ class CordovaWebContainer @JvmOverloads constructor(
     private inner class ContainerCordovaInterface(activity: AppCompatActivity) : CordovaInterfaceImpl(activity),
         ActivityResultDelegate {
         private var pendingActivityResultRequestCode: Int? = null
+
         override fun onMessage(id: String, data: Any?): Any {
             return handlePluginMessage(id, data)
         }
@@ -350,7 +352,7 @@ class CordovaWebContainer @JvmOverloads constructor(
         override fun requestPermissions(
             plugin: CordovaPlugin,
             requestCode: Int,
-            permissions: Array<out String>
+            permissions: Array<out String>,
         ) {
             resultCoordinator.launchPermissionRequest(plugin, requestCode, permissions)
         }
@@ -383,7 +385,7 @@ class CordovaWebContainer @JvmOverloads constructor(
         override fun startActivityForResult(
             command: CordovaPlugin,
             intent: Intent,
-            requestCode: Int
+            requestCode: Int,
         ) {
             resultCoordinator.launchActivityForResult(command, intent, requestCode)
         }
@@ -429,11 +431,9 @@ class CordovaWebContainer @JvmOverloads constructor(
         }
     }
 
-    /**
-     * Load the url into the webview.
-     */
     @Throws(RuntimeException::class)
-    fun loadUrl(url: String = launchUrl) {
+    fun loadUrl(url: String) {
+        stateController.requireReady()
         keepRunning = preferences.getBoolean("KeepRunning", true)
         if (url.isEmpty()) {
             LOG.e(TAG, "url不能为空，请检查")
@@ -441,91 +441,15 @@ class CordovaWebContainer @JvmOverloads constructor(
         }
         launchUrl = url
         appView.loadUrlIntoView(launchUrl, true)
-
     }
 
+    fun loadDefaultUrl() {
+        stateController.requireReady()
+        loadUrl(launchUrl)
+    }
 
-    /**
-     *  Handle message
-     *  处理插件发出的消息
-     * @param id
-     * @param data
-     * @return
-     */
     private fun handlePluginMessage(id: String, data: Any?): Any {
-        when (id) {
-            PluginMessageId.onPageStarted -> {
-                handleReadyStateChange()
-                (data as? String)?.let(pageObserverDispatcher::onPageStarted)
-            }
-
-            PluginMessageId.onPageFinished -> {
-                getDocumentTitle()
-                (data as? String)?.let(pageObserverDispatcher::onPageFinished)
-            }
-
-            PluginMessageId.onProgressChanged -> {
-                (data as? Int)?.let(pageObserverDispatcher::onProgressChanged)
-            }
-
-            PluginMessageId.onReceivedTitle -> {
-                val title = data as? String ?: return "handlePluginMessage"
-                pageTitle = title
-                if (pageTitle != launchUrl) {
-                    pageObserverDispatcher.onReceivedTitle(title)
-                }
-            }
-
-            PluginMessageId.onNavigationAttempt -> {
-                (data as? String)?.let(pageObserverDispatcher::onNavigationAttempt)
-            }
-
-            PluginMessageId.onOverrideUrlLoading -> {
-                (data as? String)?.let(pageObserverDispatcher::onOverrideUrlLoading)
-            }
-
-            PluginMessageId.shouldAllowNavigation -> {
-                (data as? String)?.let(pageObserverDispatcher::shouldAllowNavigation)
-            }
-
-            PluginMessageId.shouldOpenExternalUrl -> {
-                (data as? String)?.let(pageObserverDispatcher::shouldOpenExternalUrl)
-            }
-
-            PluginMessageId.pluginExecute -> {
-                val pluginExecute = (data as? PlugnExecute)?.apply {
-                    if (url.isBlank()) {
-                        url = launchUrl
-                    }
-                } ?: PlugnExecute()
-                pageObserverDispatcher.onPluginExecute(pluginExecute)
-            }
-
-            PluginMessageId.pluginResult -> {
-                val pluginExecResult = (data as? PlugnExecResult)?.apply {
-                    if (url.isBlank()) {
-                        url = launchUrl
-                    }
-                } ?: PlugnExecResult()
-                pageObserverDispatcher.onPluginExecResult(pluginExecResult)
-            }
-
-            PluginMessageId.readyStateChange -> {
-                notifyReadyStateObservers(data)
-            }
-
-            PluginMessageId.onReceivedError -> {
-                onReceivedError(data)
-            }
-
-            PluginMessageId.windowOnError -> {
-                onWindowError(data)
-            }
-
-            else -> {
-            }
-        }
-        return "handlePluginMessage"
+        return messageRouter.dispatch(id, data)
     }
 
     private fun notifyReadyStateObservers(data: Any?) {
@@ -540,7 +464,6 @@ class CordovaWebContainer @JvmOverloads constructor(
 
     private fun onWindowError(data: Any?) {
         kotlin.runCatching {
-            /*{"msg":"Uncaught Error: test error","url":"https://localhost/js/index.js","lineNo":45,"columnNo":5} */
             val jsonObject = JSONObject(data as String)
             val msg = jsonObject.getString("msg")
             val url = jsonObject.getString("url")
@@ -548,43 +471,46 @@ class CordovaWebContainer @JvmOverloads constructor(
             val columnNo = jsonObject.getInt("columnNo")
             pageObserverDispatcher.onWindowError(url, msg, lineNo, columnNo)
         }.onFailure {
-            it.printStackTrace()
+            LOG.e(TAG, "onWindowError parse error", it)
         }
-
     }
 
-    private fun getDocumentTitle() {
-        webview.evaluateJavascript(
-            "document.title".trimIndent()
-        ) {
+    private fun loadDocumentTitle() {
+        webview.evaluateJavascript("document.title") {
             LOG.i(TAG, "getDocumentTitle:$it ")
             if (it.isNotEmpty()) {
-                this.pageTitle = it
+                pageTitle = it
             }
-
         }
     }
 
-    private fun handleReadyStateChange() {
+    private fun injectDocumentHooks() {
         webview.evaluateJavascript(
             """
-                document.addEventListener('readystatechange', function () {
-                    window.${documentJsInterface.getJsName()}.readyStateChange(document.readyState)
-                });
-            """.trimIndent(), null
+                if (!window.__cordovaReadyStateHooked) {
+                    window.__cordovaReadyStateHooked = true;
+                    document.addEventListener('readystatechange', function () {
+                        window.${documentJsInterface.getJsName()}.readyStateChange(document.readyState)
+                    });
+                }
+            """.trimIndent(),
+            null,
         )
 
         webview.evaluateJavascript(
             """
-                window.onerror = function (msg, url, lineNo, columnNo, error) {
-                    const data = {msg, url, lineNo, columnNo};
-                    var stringify = JSON.stringify(data);
-                    window.${documentJsInterface.getJsName()}.windowOnError(stringify);
-                };
-        """.trimIndent(), null
+                if (!window.__cordovaErrorHooked) {
+                    window.__cordovaErrorHooked = true;
+                    window.onerror = function (msg, url, lineNo, columnNo, error) {
+                        const data = {msg, url, lineNo, columnNo};
+                        var stringify = JSON.stringify(data);
+                        window.${documentJsInterface.getJsName()}.windowOnError(stringify);
+                    };
+                }
+            """.trimIndent(),
+            null,
         )
     }
-
 
     inner class DocumentJsInterface : CordovaJsInterface("DocumentJsInterface") {
         @JavascriptInterface
@@ -596,7 +522,6 @@ class CordovaWebContainer @JvmOverloads constructor(
         fun windowOnError(data: String) {
             appView.pluginManager.postMessage(PluginMessageId.windowOnError, data)
         }
-
     }
 
     private fun onReceivedError(data: Any?) {
@@ -609,16 +534,15 @@ class CordovaWebContainer @JvmOverloads constructor(
         }
     }
 
-
     fun onSaveInstanceState(outState: Bundle?) {
-        if (!this::resultCoordinator.isInitialized) {
+        if (!stateController.isCordovaReady(this::cordovaInterface.isInitialized)) {
             return
         }
         resultCoordinator.onSaveInstanceState(outState)
     }
 
     fun restoreInstanceState(savedInstanceState: Bundle?) {
-        if (!this::resultCoordinator.isInitialized) {
+        if (!stateController.isCordovaReady(this::cordovaInterface.isInitialized)) {
             deferredRestoreState = savedInstanceState
             return
         }
@@ -627,14 +551,14 @@ class CordovaWebContainer @JvmOverloads constructor(
     }
 
     fun startActivityForResult(requestCode: Int) {
-        if (!this::cordovaInterface.isInitialized) {
+        if (!stateController.isCordovaReady(this::cordovaInterface.isInitialized)) {
             return
         }
         cordovaInterface.rememberActivityResultRequestCode(requestCode)
     }
 
     fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
-        if (!this::cordovaInterface.isInitialized) {
+        if (!stateController.isCordovaReady(this::cordovaInterface.isInitialized)) {
             return
         }
         cordovaInterface.clearActivityResultRequestCode(requestCode)
@@ -646,7 +570,7 @@ class CordovaWebContainer @JvmOverloads constructor(
         permissions: Array<out String>,
         grantResults: IntArray,
     ) {
-        if (!this::cordovaInterface.isInitialized) {
+        if (!stateController.isCordovaReady(this::cordovaInterface.isInitialized)) {
             return
         }
         kotlin.runCatching {
@@ -657,28 +581,23 @@ class CordovaWebContainer @JvmOverloads constructor(
         }
     }
 
-    /**
-     * Called by the system when the device configuration changes while your activity is running.
-     * onConfigurationChanged 被调用 例如语言、屏幕方向等发生变化
-     *
-     * @param newConfig The new device configuration
-     */
-    public override fun onConfigurationChanged(newConfig: Configuration) {
+    override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        if (!this::appView.isInitialized) {
+        if (!stateController.isWebViewReady(this::appView.isInitialized)) {
             return
         }
-        val pm = appView.pluginManager
-        pm?.onConfigurationChanged(newConfig)
+        appView.pluginManager?.onConfigurationChanged(newConfig)
     }
-
 
     fun addPageObserver(pageObserver: PageObserver) {
         pageObserverDispatcher.add(pageObserver)
     }
 
-
     private fun destroyContainer() {
+        if (stateController.isDestroyed()) {
+            return
+        }
+
         if (this::appView.isInitialized) {
             appView.handleDestroy()
         }
@@ -693,38 +612,51 @@ class CordovaWebContainer @JvmOverloads constructor(
             cordovaInterface.clearActivityResultState()
         }
         deferredRestoreState = null
+        stateController.markDestroyed()
     }
 
-    fun canGoBack() = webview.canGoBack()
+    fun canGoBack(): Boolean {
+        stateController.requireReady()
+        return webview.canGoBack()
+    }
+
     fun goBack() {
+        stateController.requireReady()
         pageObserverDispatcher.goBack()
         webview.goBack()
     }
 
-    fun canGoForward() = webview.canGoForward()
+    fun canGoForward(): Boolean {
+        stateController.requireReady()
+        return webview.canGoForward()
+    }
+
     fun goForward() {
+        stateController.requireReady()
         pageObserverDispatcher.goForward()
         webview.goForward()
     }
 
     fun clearCache(includeDiskFiles: Boolean) {
+        stateController.requireReady()
         pageObserverDispatcher.clearCache(includeDiskFiles)
         webview.clearCache(includeDiskFiles)
     }
 
     fun reload() {
+        stateController.requireReady()
         pageObserverDispatcher.reload()
         webview.reload()
     }
 
     fun clearHistory() {
+        stateController.requireReady()
         pageObserverDispatcher.clearHistory()
         webview.clearHistory()
     }
 
-
     fun setOnPageScrollChangedListener(listener: PageScrollChangedListener) {
+        stateController.requireReady()
         webview.setOnPageScrollChangedListener(listener)
     }
-
 }
