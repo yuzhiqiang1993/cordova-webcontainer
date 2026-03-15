@@ -11,6 +11,11 @@ import org.apache.cordova.CordovaPlugin
 import org.apache.cordova.LOG
 import org.apache.cordova.PluginManager
 
+/**
+ * @description Activity Result 协调器
+ * @author  yuzhiqiang (zhiqiang.yu.xeon@gmail.com)
+ */
+
 internal data class PendingPermissionRequest(
     val mappedRequestCode: Int,
     val permissions: Array<String>,
@@ -25,11 +30,13 @@ internal interface ActivityResultDelegate {
         requestCode: Int,
         permissions: Array<out String>,
     ): PendingPermissionRequest
+
     fun dispatchPermissionResult(
         mappedRequestCode: Int,
         permissions: Array<String>,
         grantResults: IntArray,
     )
+
     fun prepareActivityResult(command: CordovaPlugin, requestCode: Int)
     fun rememberActivityResultRequestCode(requestCode: Int)
     fun consumeActivityResultRequestCode(): Int
@@ -82,8 +89,9 @@ internal class ActivityResultCoordinator(
         requestCode: Int,
         permissions: Array<out String>,
     ) {
-        pendingPermissionRequest = delegate.registerPermissionRequest(plugin, requestCode, permissions)
-        permissionLauncher.launch(checkNotNull(pendingPermissionRequest).permissions)
+        val pendingRequest = delegate.registerPermissionRequest(plugin, requestCode, permissions)
+        pendingPermissionRequest = pendingRequest
+        permissionLauncher.launch(pendingRequest.permissions)
     }
 
     fun launchActivityForResult(
@@ -102,6 +110,7 @@ internal class ActivityResultCoordinator(
 
     fun clear() {
         pendingPermissionRequest = null
+        delegate.clearPendingActivityResult()
     }
 
     private fun registerLaunchers() {
@@ -113,9 +122,7 @@ internal class ActivityResultCoordinator(
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
             delegate.dispatchActivityResult(
-                delegate.consumeActivityResultRequestCode(),
-                result.resultCode,
-                result.data
+                delegate.consumeActivityResultRequestCode(), result.resultCode, result.data
             )
         }
 

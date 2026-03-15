@@ -25,6 +25,7 @@ import com.yzq.cordova_webcontainer.core.injection.CordovaInject
 import com.yzq.cordova_webcontainer.core.whitelist.CordovaWhitelistInterceptor
 import com.yzq.cordova_webcontainer.data.DocumentReadyState
 import com.yzq.cordova_webcontainer.observer.PageObserver
+import com.yzq.cordova_webcontainer.observer.PageObserverDispatcher
 import org.apache.cordova.Config
 import org.apache.cordova.ConfigXmlParser
 import org.apache.cordova.CordovaInterfaceImpl
@@ -42,7 +43,6 @@ import org.apache.cordova.customer.listener.PageScrollChangedListener
 import org.apache.cordova.engine.SystemWebView
 import org.apache.cordova.engine.SystemWebViewEngine
 import org.json.JSONObject
-import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * @author yuzhiqiang (zhiqiang.yu.xeon@gmail.com)
@@ -60,7 +60,7 @@ class CordovaWebContainer @JvmOverloads constructor(
         const val TAG = "CordovaWebContainer"
     }
 
-    private val isInitialized: AtomicBoolean = AtomicBoolean(false)
+    private var isInitialized = false
 
 
     private val documentJsInterface: CordovaJsInterface = DocumentJsInterface()
@@ -85,7 +85,7 @@ class CordovaWebContainer @JvmOverloads constructor(
     private lateinit var cordovaInterface: ContainerCordovaInterface
 
 
-    private val pageObserverList = mutableListOf<PageObserver>()
+    private val pageObserverDispatcher = PageObserverDispatcher()
     val webview: SystemWebView
         get() = appView.view as SystemWebView
 
@@ -126,10 +126,10 @@ class CordovaWebContainer @JvmOverloads constructor(
         savedInstanceState: Bundle?,
         logLevel: Int = LOG.ERROR,
     ) {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             return
         }
-        isInitialized.set(true)
+        isInitialized = true
         hostActivity = appCompatActivity
         if (!this::hostLifecycleOwner.isInitialized) {
             hostLifecycleOwner = appCompatActivity
@@ -224,45 +224,33 @@ class CordovaWebContainer @JvmOverloads constructor(
     private fun handleHostLifecycle() {
         hostLifecycleOwner.lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onCreate(owner: LifecycleOwner) {
-                pageObserverList.forEach {
-                    it.onHostCreate(owner, hostActivity)
-                }
+                pageObserverDispatcher.onHostCreate(owner, hostActivity)
             }
 
             override fun onStart(owner: LifecycleOwner) {
                 appView.handleStart()
-                pageObserverList.forEach {
-                    it.onHostStart(owner, hostActivity)
-                }
+                pageObserverDispatcher.onHostStart(owner, hostActivity)
             }
 
             override fun onResume(owner: LifecycleOwner) {
                 appView.handleResume(keepRunning)
-                pageObserverList.forEach {
-                    it.onHostResume(owner, hostActivity)
-                }
+                pageObserverDispatcher.onHostResume(owner, hostActivity)
             }
 
             override fun onPause(owner: LifecycleOwner) {
                 val keepRunningNew = keepRunning || cordovaInterface.hasActivityResultCallback()
                 appView.handlePause(keepRunningNew)
-                pageObserverList.forEach {
-                    it.onHostPause(owner, hostActivity)
-                }
+                pageObserverDispatcher.onHostPause(owner, hostActivity)
             }
 
             override fun onStop(owner: LifecycleOwner) {
                 appView.handleStop()
-                pageObserverList.forEach {
-                    it.onHostStop(owner, hostActivity)
-                }
+                pageObserverDispatcher.onHostStop(owner, hostActivity)
             }
 
             override fun onDestroy(owner: LifecycleOwner) {
-                pageObserverList.forEach {
-                    it.onHostDestory(owner, hostActivity)
-                }
-                destory()
+                pageObserverDispatcher.onHostDestroy(owner, hostActivity)
+                destroyContainer()
             }
         })
     }
@@ -468,129 +456,62 @@ class CordovaWebContainer @JvmOverloads constructor(
         when (id) {
             PluginMessageId.onPageStarted -> {
                 handleReadyStateChange()
-                runCatching {
-                    data as String
-                    pageObserverList.forEach {
-                        it.onPageStarted(data)
-                    }
-                }
+                (data as? String)?.let(pageObserverDispatcher::onPageStarted)
             }
 
             PluginMessageId.onPageFinished -> {
                 getDocumentTitle()
-
-                runCatching {
-                    data as String
-                    pageObserverList.forEach {
-                        it.onPageFinished(data)
-                    }
-                }
-
+                (data as? String)?.let(pageObserverDispatcher::onPageFinished)
             }
 
             PluginMessageId.onProgressChanged -> {
-
-                runCatching {
-                    data as Int
-                    pageObserverList.forEach {
-                        it.onProgressChanged(data)
-                    }
-                }
+                (data as? Int)?.let(pageObserverDispatcher::onProgressChanged)
             }
 
             PluginMessageId.onReceivedTitle -> {
-
-                pageTitle = data as String
+                val title = data as? String ?: return "handlePluginMessage"
+                pageTitle = title
                 if (pageTitle != launchUrl) {
-                    pageObserverList.forEach {
-                        it.onReceivedTitle(data)
-                    }
+                    pageObserverDispatcher.onReceivedTitle(title)
                 }
-
             }
 
             PluginMessageId.onNavigationAttempt -> {
-                runCatching {
-                    data as String
-                    pageObserverList.forEach {
-                        it.onNavigationAttempt(data)
-                    }
-                }
+                (data as? String)?.let(pageObserverDispatcher::onNavigationAttempt)
             }
 
             PluginMessageId.onOverrideUrlLoading -> {
-                runCatching {
-                    data as String
-                    pageObserverList.forEach {
-                        it.onOverrideUrlLoading(data)
-                    }
-                }
+                (data as? String)?.let(pageObserverDispatcher::onOverrideUrlLoading)
             }
 
             PluginMessageId.shouldAllowNavigation -> {
-                runCatching {
-                    data as String
-                    pageObserverList.forEach {
-                        it.shouldAllowNavigation(data)
-                    }
-                }
-
+                (data as? String)?.let(pageObserverDispatcher::shouldAllowNavigation)
             }
 
             PluginMessageId.shouldOpenExternalUrl -> {
-                runCatching {
-                    data as String
-                    pageObserverList.forEach {
-                        it.shouldOpenExternalUrl(data)
-                    }
-                }
+                (data as? String)?.let(pageObserverDispatcher::shouldOpenExternalUrl)
             }
 
             PluginMessageId.pluginExecute -> {
-                val plugnExecute = kotlin.runCatching {
-                    (data as PlugnExecute).apply {
-                        if (url.isBlank()) {
-                            url = launchUrl
-                        }
+                val pluginExecute = (data as? PlugnExecute)?.apply {
+                    if (url.isBlank()) {
+                        url = launchUrl
                     }
-                }.getOrDefault(PlugnExecute())
-
-                pageObserverList.forEach {
-                    it.pluginExecute(plugnExecute)
-                }
+                } ?: PlugnExecute()
+                pageObserverDispatcher.onPluginExecute(pluginExecute)
             }
 
             PluginMessageId.pluginResult -> {
-                val plugnExecResult = kotlin.runCatching {
-                    (data as PlugnExecResult).apply {
-                        if (url.isBlank()) {
-                            url = launchUrl
-                        }
+                val pluginExecResult = (data as? PlugnExecResult)?.apply {
+                    if (url.isBlank()) {
+                        url = launchUrl
                     }
-                }.getOrDefault(PlugnExecResult())
-                pageObserverList.forEach {
-                    it.pluginExecResult(plugnExecResult)
-                }
+                } ?: PlugnExecResult()
+                pageObserverDispatcher.onPluginExecResult(pluginExecResult)
             }
 
             PluginMessageId.readyStateChange -> {
-                pageObserverList.forEach {
-                    runCatching {
-                        when (data as String) {
-                            DocumentReadyState.loading.event -> {
-                                it.readyStateChange(DocumentReadyState.loading, launchUrl)
-                            }
-
-                            DocumentReadyState.interactive.event -> {
-                                it.readyStateChange(DocumentReadyState.interactive, launchUrl)
-                            }
-
-                            DocumentReadyState.complete.event -> {
-                                it.readyStateChange(DocumentReadyState.complete, launchUrl)
-                            }
-                        }
-                    }
-                }
+                notifyReadyStateObservers(data)
             }
 
             PluginMessageId.onReceivedError -> {
@@ -607,6 +528,16 @@ class CordovaWebContainer @JvmOverloads constructor(
         return "handlePluginMessage"
     }
 
+    private fun notifyReadyStateObservers(data: Any?) {
+        val readyState = when (data as? String) {
+            DocumentReadyState.loading.event -> DocumentReadyState.loading
+            DocumentReadyState.interactive.event -> DocumentReadyState.interactive
+            DocumentReadyState.complete.event -> DocumentReadyState.complete
+            else -> return
+        }
+        pageObserverDispatcher.onReadyStateChange(readyState, launchUrl)
+    }
+
     private fun onWindowError(data: Any?) {
         kotlin.runCatching {
             /*{"msg":"Uncaught Error: test error","url":"https://localhost/js/index.js","lineNo":45,"columnNo":5} */
@@ -615,9 +546,7 @@ class CordovaWebContainer @JvmOverloads constructor(
             val url = jsonObject.getString("url")
             val lineNo = jsonObject.getInt("lineNo")
             val columnNo = jsonObject.getInt("columnNo")
-            pageObserverList.forEach {
-                it.onWindowError(url, msg, lineNo, columnNo)
-            }
+            pageObserverDispatcher.onWindowError(url, msg, lineNo, columnNo)
         }.onFailure {
             it.printStackTrace()
         }
@@ -676,9 +605,7 @@ class CordovaWebContainer @JvmOverloads constructor(
             val errorCode = jsonObject.getInt("errorCode")
             val description = jsonObject.getString("description")
             val url = jsonObject.getString("url")
-            pageObserverList.forEach {
-                it.onPageError(errorCode, description, url)
-            }
+            pageObserverDispatcher.onPageError(errorCode, description, url)
         }
     }
 
@@ -700,10 +627,16 @@ class CordovaWebContainer @JvmOverloads constructor(
     }
 
     fun startActivityForResult(requestCode: Int) {
+        if (!this::cordovaInterface.isInitialized) {
+            return
+        }
         cordovaInterface.rememberActivityResultRequestCode(requestCode)
     }
 
     fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
+        if (!this::cordovaInterface.isInitialized) {
+            return
+        }
         cordovaInterface.clearActivityResultRequestCode(requestCode)
         cordovaInterface.onActivityResult(requestCode, resultCode, intent)
     }
@@ -713,6 +646,9 @@ class CordovaWebContainer @JvmOverloads constructor(
         permissions: Array<out String>,
         grantResults: IntArray,
     ) {
+        if (!this::cordovaInterface.isInitialized) {
+            return
+        }
         kotlin.runCatching {
             cordovaInterface.onRequestPermissionResult(requestCode, permissions, grantResults)
         }.onFailure {
@@ -729,19 +665,24 @@ class CordovaWebContainer @JvmOverloads constructor(
      */
     public override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
+        if (!this::appView.isInitialized) {
+            return
+        }
         val pm = appView.pluginManager
         pm?.onConfigurationChanged(newConfig)
     }
 
 
     fun addPageObserver(pageObserver: PageObserver) {
-        this.pageObserverList.add(pageObserver)
+        pageObserverDispatcher.add(pageObserver)
     }
 
 
-    private fun destory() {
-        appView.handleDestroy()
-        this.pageObserverList.clear()
+    private fun destroyContainer() {
+        if (this::appView.isInitialized) {
+            appView.handleDestroy()
+        }
+        pageObserverDispatcher.clear()
 
         cordovaInject?.destroy()
         cordovaInject = null
@@ -756,38 +697,28 @@ class CordovaWebContainer @JvmOverloads constructor(
 
     fun canGoBack() = webview.canGoBack()
     fun goBack() {
-        pageObserverList.forEach {
-            it.goBack()
-        }
+        pageObserverDispatcher.goBack()
         webview.goBack()
     }
 
     fun canGoForward() = webview.canGoForward()
     fun goForward() {
-        pageObserverList.forEach {
-            it.goForward()
-        }
+        pageObserverDispatcher.goForward()
         webview.goForward()
     }
 
     fun clearCache(includeDiskFiles: Boolean) {
-        pageObserverList.forEach {
-            it.clearCache(includeDiskFiles)
-        }
+        pageObserverDispatcher.clearCache(includeDiskFiles)
         webview.clearCache(includeDiskFiles)
     }
 
     fun reload() {
-        pageObserverList.forEach {
-            it.reload()
-        }
+        pageObserverDispatcher.reload()
         webview.reload()
     }
 
     fun clearHistory() {
-        pageObserverList.forEach {
-            it.clearHistory()
-        }
+        pageObserverDispatcher.clearHistory()
         webview.clearHistory()
     }
 

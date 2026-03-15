@@ -53,7 +53,7 @@ interface PageObserver {
     fun onHostResume(owner: LifecycleOwner, activity: AppCompatActivity) {}
     fun onHostPause(owner: LifecycleOwner, activity: AppCompatActivity) {}
     fun onHostStop(owner: LifecycleOwner, activity: AppCompatActivity) {}
-    fun onHostDestory(owner: LifecycleOwner, activity: AppCompatActivity) {}
+    fun onHostDestroy(owner: LifecycleOwner, activity: AppCompatActivity) {}
 
 
     /**
