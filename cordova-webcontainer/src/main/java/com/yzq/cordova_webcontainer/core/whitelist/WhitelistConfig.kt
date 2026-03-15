@@ -6,7 +6,7 @@ package com.yzq.cordova_webcontainer.core.whitelist
  */
 
 data class WhitelistConfig(
-    // 是否启用白名单（false 时所有 API 均可调用）
+    // 是否启用白名单（关闭后等同于只保留全局开关，不执行规则匹配）
     val enable: Boolean = false,
     // 信任域名列表（逗号分隔，自动获得 */* 全部权限）
     val trustedDomains: String = "",

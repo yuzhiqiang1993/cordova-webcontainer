@@ -142,8 +142,13 @@ class CordovaInject internal constructor(
     }
 
     private fun interceptLocalhostResource(url: String): WebResourceResponse? {
-        if (url.startsWith("http://localhost/")) {
-            val assetPath = url.substringAfter("http://localhost/")
+        val prefix = when {
+            url.startsWith("https://localhost/") -> "https://localhost/"
+            url.startsWith("http://localhost/") -> "http://localhost/"
+            else -> null
+        }
+        if (prefix != null) {
+            val assetPath = url.substringAfter(prefix)
 
             // 忽略 favicon.ico，防止加载本地网页时可能出现 SystemWebViewClient 报错
             if (assetPath.endsWith("favicon.ico")) {

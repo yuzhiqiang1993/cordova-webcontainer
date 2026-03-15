@@ -20,6 +20,7 @@ internal class CordovaWhitelistInterceptor(config: WhitelistConfig) : CordovaApi
 
     // 全局放行 API 列表
     private val trustedApis: List<String> = config.trustedApis
+    private val enabled: Boolean = config.enable
 
     // 细粒度的域名规则（域名 → 规则映射）
     private val domainRules: Map<String, WhitelistConfig.Rule> =
@@ -50,6 +51,10 @@ internal class CordovaWhitelistInterceptor(config: WhitelistConfig) : CordovaApi
                 Log.w(TAG, "API 拦截: 参数为空")
             }
             return false
+        }
+
+        if (!enabled) {
+            return true
         }
 
         val host = try {
@@ -97,12 +102,18 @@ internal class CordovaWhitelistInterceptor(config: WhitelistConfig) : CordovaApi
      * 检查 host 是否在信任域名列表中
      */
     private fun isTrustedDomain(host: String): Boolean {
+        val normalizedHost = host.lowercase().trim()
         for (i in trustedDomains.indices) {
-            if (host.contains(trustedDomains[i])) {
+            if (matchesHost(normalizedHost, trustedDomains[i])) {
                 return true
             }
         }
         return false
+    }
+
+    private fun matchesHost(host: String, trustedDomain: String): Boolean {
+        val normalizedDomain = trustedDomain.lowercase().trim()
+        return host == normalizedDomain || host.endsWith(".$normalizedDomain")
     }
 
     /**
