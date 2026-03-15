@@ -2,19 +2,14 @@ package com.yzq.demo.activity
 
 import android.content.Context
 import android.content.Intent
-import android.net.http.SslError
 import android.os.Bundle
 import android.provider.Settings
 import android.net.Uri
 import android.util.Log
-import android.view.View
 import android.webkit.GeolocationPermissions
-import android.webkit.SslErrorHandler
-import android.webkit.WebView
 import android.widget.Toast
 import com.yzq.cordova_webcontainer.CordovaWebContainer
 import com.yzq.cordova_webcontainer.CordovaWebContainerActivity
-import com.yzq.cordova_webcontainer.core.CordovaWebviewClient
 import com.yzq.cordova_webcontainer.observer.PageObserver
 import com.yzq.demo.databinding.ActivityGeolocationTestBinding
 import org.apache.cordova.customer.data.PlugnExecResult
@@ -54,17 +49,6 @@ class GeolocationTestActivity : CordovaWebContainerActivity() {
                  * 注入宿主
                  */
                 init(this@GeolocationTestActivity)
-
-                setWebviewClient(object : CordovaWebviewClient(webViewEngine) {
-                    override fun onReceivedSslError(
-                        view: WebView?,
-                        handler: SslErrorHandler?,
-                        error: SslError?,
-                    ) {
-                        handler?.proceed()
-                    }
-                })
-
 
                 /*配置定位需要的基础信息支持*/
                 webview.settings.javaScriptEnabled = true

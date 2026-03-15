@@ -13,18 +13,8 @@ android {
         minSdk = 24
     }
 
-    signingConfigs {
-        create("release") {
-            storePassword = "123456"
-            keyAlias = "cordova_webcontainer"
-            keyPassword = "123456"
-            storeFile = file("cordova_webcontainer")
-        }
-    }
-
     buildTypes {
         debug {
-            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             isShrinkResources = false
             isDebuggable = true
@@ -35,10 +25,9 @@ android {
             buildConfigField("boolean", "LOG_DEBUG", "true")
         }
         release {
-            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
-            isDebuggable = true
+            isDebuggable = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

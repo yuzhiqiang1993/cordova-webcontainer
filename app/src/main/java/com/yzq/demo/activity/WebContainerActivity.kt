@@ -2,17 +2,13 @@ package com.yzq.demo.activity
 
 import android.content.Context
 import android.content.Intent
-import android.net.http.SslError
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.webkit.JavascriptInterface
-import android.webkit.SslErrorHandler
-import android.webkit.WebView
 import com.yzq.cordova_webcontainer.CordovaWebContainer
 import com.yzq.cordova_webcontainer.CordovaWebContainerActivity
 import com.yzq.cordova_webcontainer.core.CordovaJsInterface
-import com.yzq.cordova_webcontainer.core.CordovaWebviewClient
 import com.yzq.cordova_webcontainer.observer.PageObserver
 import com.yzq.demo.databinding.ActivityWebContainerBinding
 import org.apache.cordova.customer.data.PlugnExecResult
@@ -55,16 +51,6 @@ class WebContainerActivity : CordovaWebContainerActivity() {
                  * 初始化
                  */
                 init(this@WebContainerActivity)
-
-                setWebviewClient(object : CordovaWebviewClient(webViewEngine) {
-                    override fun onReceivedSslError(
-                        view: WebView?,
-                        handler: SslErrorHandler?,
-                        error: SslError?,
-                    ) {
-                        handler?.proceed()
-                    }
-                })
 
                 /* ---- 优势 1：灵活接管 WebView 资源网络请求 ---- */
                 // 支持对任意的请求做本地代理或离线缓存等处理
