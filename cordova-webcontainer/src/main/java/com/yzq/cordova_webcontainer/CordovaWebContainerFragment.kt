@@ -1,6 +1,5 @@
 package com.yzq.cordova_webcontainer
 
-import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -28,6 +27,7 @@ abstract class CordovaWebContainerFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         webContainer = initWebContainer()
+        webContainer?.restoreInstanceState(savedInstanceState)
 
         /*初始化控件*/
         initWidget()
@@ -65,21 +65,6 @@ abstract class CordovaWebContainerFragment : Fragment() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         webContainer?.onSaveInstanceState(outState)
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        webContainer?.onActivityResult(requestCode, resultCode, data)
-
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray,
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        webContainer?.onRequestPermissionsResult(requestCode, permissions, grantResults)
     }
 
 }

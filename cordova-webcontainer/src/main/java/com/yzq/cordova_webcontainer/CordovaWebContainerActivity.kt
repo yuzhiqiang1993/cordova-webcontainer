@@ -1,8 +1,6 @@
 package com.yzq.cordova_webcontainer
 
-import android.content.Intent
 import android.os.Bundle
-import android.os.PersistableBundle
 import androidx.appcompat.app.AppCompatActivity
 
 
@@ -22,6 +20,7 @@ abstract class CordovaWebContainerActivity : AppCompatActivity() {
         initContentView()
         //初始化web容器
         webContainer = initWebContainer()
+        webContainer?.restoreInstanceState(savedInstanceState)
         //初始化控件
         initWidget()
 
@@ -49,31 +48,9 @@ abstract class CordovaWebContainerActivity : AppCompatActivity() {
     /*初始化 webContainer 子类实现*/
     abstract fun initWebContainer(): CordovaWebContainer
 
-    override fun onSaveInstanceState(outState: Bundle, outPersistentState: PersistableBundle) {
-        super.onSaveInstanceState(outState, outPersistentState)
+    override fun onSaveInstanceState(outState: Bundle) {
         webContainer?.onSaveInstanceState(outState)
+        super.onSaveInstanceState(outState)
     }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        webContainer?.onActivityResult(requestCode, resultCode, data)
-
-    }
-
-
-    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) {
-        webContainer?.startActivityForResult(requestCode)
-        super.startActivityForResult(intent, requestCode, options)
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray,
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        webContainer?.onRequestPermissionsResult(requestCode, permissions, grantResults)
-    }
-
 
 }

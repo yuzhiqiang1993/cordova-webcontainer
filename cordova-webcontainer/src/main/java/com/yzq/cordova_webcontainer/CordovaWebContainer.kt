@@ -8,6 +8,7 @@ import android.graphics.Color
 import android.media.AudioManager
 import android.os.Bundle
 import android.util.AttributeSet
+import android.view.View
 import android.view.ViewGroup
 import android.webkit.JavascriptInterface
 import android.widget.FrameLayout
@@ -65,6 +66,7 @@ class CordovaWebContainer @JvmOverloads constructor(
     private val documentJsInterface: CordovaJsInterface = DocumentJsInterface()
     lateinit var hostActivity: AppCompatActivity
     var hostFragment: Fragment? = null
+    private lateinit var hostLifecycleOwner: LifecycleOwner
 
     private var pageTitle: String = ""
 
@@ -80,7 +82,7 @@ class CordovaWebContainer @JvmOverloads constructor(
     private lateinit var preferences: CordovaPreferences
     private lateinit var launchUrl: String
     private lateinit var pluginEntries: ArrayList<PluginEntry>
-    private lateinit var cordovaInterface: CordovaInterfaceImpl
+    private lateinit var cordovaInterface: ContainerCordovaInterface
 
 
     private val pageObserverList = mutableListOf<PageObserver>()
@@ -102,18 +104,39 @@ class CordovaWebContainer @JvmOverloads constructor(
         get() = _webChromeClient
 
     private var cordovaInject: CordovaInject? = null
+    private var deferredRestoreState: Bundle? = null
+    private lateinit var resultCoordinator: ActivityResultCoordinator
 
     fun init(fragment: Fragment, logLevel: Int = LOG.ERROR) {
+        init(fragment, null, logLevel)
+    }
+
+    fun init(fragment: Fragment, savedInstanceState: Bundle?, logLevel: Int = LOG.ERROR) {
         this.hostFragment = fragment
-        init(fragment.requireActivity() as AppCompatActivity, logLevel)
+        this.hostLifecycleOwner = fragment.viewLifecycleOwner
+        init(fragment.requireActivity() as AppCompatActivity, savedInstanceState, logLevel)
     }
 
     fun init(appCompatActivity: AppCompatActivity, logLevel: Int = LOG.ERROR) {
+        init(appCompatActivity, null, logLevel)
+    }
+
+    fun init(
+        appCompatActivity: AppCompatActivity,
+        savedInstanceState: Bundle?,
+        logLevel: Int = LOG.ERROR,
+    ) {
         if (isInitialized.get()) {
             return
         }
         isInitialized.set(true)
         hostActivity = appCompatActivity
+        if (!this::hostLifecycleOwner.isInitialized) {
+            hostLifecycleOwner = appCompatActivity
+        }
+
+        val initialRestoreState = savedInstanceState ?: deferredRestoreState
+        deferredRestoreState = null
 
         // 读取config.xml配置
         loadConfig()
@@ -124,6 +147,14 @@ class CordovaWebContainer @JvmOverloads constructor(
             "init: Apache Cordova native platform version ${CordovaWebView.CORDOVA_VERSION} is starting"
         )
         cordovaInterface = makeCordovaInterface()
+        resultCoordinator = ActivityResultCoordinator(
+            hostActivity = hostActivity,
+            hostLifecycleOwner = hostLifecycleOwner,
+            launcherKeyFactory = ::buildLauncherKey,
+            delegate = cordovaInterface,
+            logTag = TAG,
+        )
+        resultCoordinator.prepare(initialRestoreState)
         /*初始化webview*/
         initWebView()
         LOG.i(TAG, "CordovaWebContainer init complete")
@@ -136,7 +167,7 @@ class CordovaWebContainer @JvmOverloads constructor(
         if (!appView.isInitialized) {
             appView.init(cordovaInterface, pluginEntries, preferences)
         }
-        cordovaInterface.onCordovaInit(appView.pluginManager)
+        resultCoordinator.onWebViewInitialized(appView.pluginManager)
 
         // 初始化鉴权白名单拦截器
         if (CordovaWebContainerConfig.ENABLE_CORDOVA_API_WHITELIST) {
@@ -155,7 +186,7 @@ class CordovaWebContainer @JvmOverloads constructor(
         cordovaInject = CordovaInject(hostActivity, this)
 
         _webviewClient = CordovaWebviewClient(webViewEngine)
-        _webviewClient?.interceptRequest { _, request, _ ->
+        _webviewClient.interceptRequest { _, request, _ ->
             val url = request.url.toString()
             cordovaInject?.interceptResource(url)
         }
@@ -191,7 +222,7 @@ class CordovaWebContainer @JvmOverloads constructor(
      * 宿主的生命周期处理
      */
     private fun handleHostLifecycle() {
-        hostActivity.lifecycle.addObserver(object : DefaultLifecycleObserver {
+        hostLifecycleOwner.lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onCreate(owner: LifecycleOwner) {
                 pageObserverList.forEach {
                     it.onHostCreate(owner, hostActivity)
@@ -297,45 +328,116 @@ class CordovaWebContainer @JvmOverloads constructor(
      *
      * @return
      */
-    private fun makeCordovaInterface(): CordovaInterfaceImpl {
-        val contextActivity = hostActivity
-        val currentFragment = hostFragment
+    private fun makeCordovaInterface(): ContainerCordovaInterface {
+        return ContainerCordovaInterface(hostActivity)
+    }
 
-        return object : CordovaInterfaceImpl(contextActivity) {
-            override fun onMessage(id: String, data: Any?): Any {
-                return handlePluginMessage(id, data)
-            }
-
-            override fun requestPermissions(
-                plugin: CordovaPlugin,
-                requestCode: Int,
-                permissions: Array<out String>
-            ) {
-                if (currentFragment != null) {
-                    val mappedRequestCode = permissionResultCallbacks.registerCallback(plugin, requestCode)
-                    currentFragment.requestPermissions(permissions, mappedRequestCode)
-                } else {
-                    super.requestPermissions(plugin, requestCode, permissions)
+    private fun buildLauncherKey(suffix: String): String {
+        val containerKey = if (id != View.NO_ID) {
+            runCatching { resources.getResourceEntryName(id) }.getOrDefault(id.toString())
+        } else {
+            System.identityHashCode(this).toString()
+        }
+        val hostKey = buildString {
+            append(hostActivity::class.java.name)
+            hostFragment?.let {
+                append(':')
+                append(it::class.java.name)
+                if (!it.tag.isNullOrEmpty()) {
+                    append(':')
+                    append(it.tag)
                 }
             }
+        }
+        return "CordovaWebContainer:$hostKey:$containerKey:$suffix"
+    }
 
-            override fun startActivityForResult(
-                command: CordovaPlugin,
-                intent: Intent,
-                requestCode: Int
-            ) {
-                try {
-                    if (currentFragment != null) {
-                        setActivityResultCallback(command)
-                        currentFragment.startActivityForResult(intent, requestCode)
-                    } else {
-                        super.startActivityForResult(command, intent, requestCode)
-                    }
-                } catch (e: RuntimeException) {
-                    activityResultCallback = null
-                    throw e
-                }
+    private inner class ContainerCordovaInterface(activity: AppCompatActivity) : CordovaInterfaceImpl(activity),
+        ActivityResultDelegate {
+        private var pendingActivityResultRequestCode: Int? = null
+        override fun onMessage(id: String, data: Any?): Any {
+            return handlePluginMessage(id, data)
+        }
+
+        override fun requestPermissions(
+            plugin: CordovaPlugin,
+            requestCode: Int,
+            permissions: Array<out String>
+        ) {
+            resultCoordinator.launchPermissionRequest(plugin, requestCode, permissions)
+        }
+
+        override fun registerPermissionRequest(
+            plugin: CordovaPlugin,
+            requestCode: Int,
+            permissions: Array<out String>,
+        ): PendingPermissionRequest {
+            val mappedRequestCode = permissionResultCallbacks.registerCallback(plugin, requestCode)
+            val pendingPermissions = Array(permissions.size) { index -> permissions[index] }
+            return PendingPermissionRequest(
+                mappedRequestCode = mappedRequestCode,
+                permissions = pendingPermissions,
+            )
+        }
+
+        override fun dispatchPermissionResult(
+            mappedRequestCode: Int,
+            permissions: Array<String>,
+            grantResults: IntArray,
+        ) {
+            onRequestPermissionResult(mappedRequestCode, permissions, grantResults)
+        }
+
+        override fun dispatchActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
+            onActivityResult(requestCode, resultCode, intent)
+        }
+
+        override fun startActivityForResult(
+            command: CordovaPlugin,
+            intent: Intent,
+            requestCode: Int
+        ) {
+            resultCoordinator.launchActivityForResult(command, intent, requestCode)
+        }
+
+        override fun prepareActivityResult(command: CordovaPlugin, requestCode: Int) {
+            setActivityResultCallback(command)
+            rememberActivityResultRequestCode(requestCode)
+        }
+
+        override fun rememberActivityResultRequestCode(requestCode: Int) {
+            pendingActivityResultRequestCode = requestCode
+            activityResultRequestCode = requestCode
+        }
+
+        override fun consumeActivityResultRequestCode(): Int {
+            val requestCode = pendingActivityResultRequestCode ?: activityResultRequestCode
+            pendingActivityResultRequestCode = null
+            activityResultRequestCode = 0
+            return requestCode
+        }
+
+        fun clearActivityResultRequestCode(requestCode: Int) {
+            if (pendingActivityResultRequestCode == requestCode) {
+                pendingActivityResultRequestCode = null
             }
+            if (activityResultRequestCode == requestCode) {
+                activityResultRequestCode = 0
+            }
+        }
+
+        override fun savedActivityResultRequestCode(): Int? {
+            return pendingActivityResultRequestCode
+        }
+
+        override fun clearPendingActivityResult() {
+            activityResultCallback = null
+            clearActivityResultState()
+        }
+
+        fun clearActivityResultState() {
+            pendingActivityResultRequestCode = null
+            activityResultRequestCode = 0
         }
     }
 
@@ -446,7 +548,11 @@ class CordovaWebContainer @JvmOverloads constructor(
 
             PluginMessageId.pluginExecute -> {
                 val plugnExecute = kotlin.runCatching {
-                    (data as PlugnExecute).apply { url = launchUrl }
+                    (data as PlugnExecute).apply {
+                        if (url.isBlank()) {
+                            url = launchUrl
+                        }
+                    }
                 }.getOrDefault(PlugnExecute())
 
                 pageObserverList.forEach {
@@ -456,7 +562,11 @@ class CordovaWebContainer @JvmOverloads constructor(
 
             PluginMessageId.pluginResult -> {
                 val plugnExecResult = kotlin.runCatching {
-                    (data as PlugnExecResult).apply { url = launchUrl }
+                    (data as PlugnExecResult).apply {
+                        if (url.isBlank()) {
+                            url = launchUrl
+                        }
+                    }
                 }.getOrDefault(PlugnExecResult())
                 pageObserverList.forEach {
                     it.pluginExecResult(plugnExecResult)
@@ -574,14 +684,27 @@ class CordovaWebContainer @JvmOverloads constructor(
 
 
     fun onSaveInstanceState(outState: Bundle?) {
-        cordovaInterface.onSaveInstanceState(outState)
+        if (!this::resultCoordinator.isInitialized) {
+            return
+        }
+        resultCoordinator.onSaveInstanceState(outState)
+    }
+
+    fun restoreInstanceState(savedInstanceState: Bundle?) {
+        if (!this::resultCoordinator.isInitialized) {
+            deferredRestoreState = savedInstanceState
+            return
+        }
+        val pluginManager = if (this::appView.isInitialized) appView.pluginManager else null
+        resultCoordinator.restoreInstanceState(savedInstanceState, pluginManager)
     }
 
     fun startActivityForResult(requestCode: Int) {
-        cordovaInterface.setActivityResultRequestCode(requestCode)
+        cordovaInterface.rememberActivityResultRequestCode(requestCode)
     }
 
     fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
+        cordovaInterface.clearActivityResultRequestCode(requestCode)
         cordovaInterface.onActivityResult(requestCode, resultCode, intent)
     }
 
@@ -622,6 +745,13 @@ class CordovaWebContainer @JvmOverloads constructor(
 
         cordovaInject?.destroy()
         cordovaInject = null
+        if (this::resultCoordinator.isInitialized) {
+            resultCoordinator.clear()
+        }
+        if (this::cordovaInterface.isInitialized) {
+            cordovaInterface.clearActivityResultState()
+        }
+        deferredRestoreState = null
     }
 
     fun canGoBack() = webview.canGoBack()

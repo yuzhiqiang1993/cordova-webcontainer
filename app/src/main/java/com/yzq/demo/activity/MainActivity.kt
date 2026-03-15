@@ -1,8 +1,6 @@
 package com.yzq.demo.activity
 
-import android.content.Intent
 import android.os.Bundle
-import android.os.PersistableBundle
 import androidx.appcompat.app.AppCompatActivity
 import com.yzq.cordova_webcontainer.observer.PageObserver
 import com.yzq.demo.databinding.ActivityMainBinding
@@ -36,7 +34,7 @@ class MainActivity : AppCompatActivity() {
             }
             /* ---- 核心演示：初始化 CordovaWebContainer ---- */
             // 传入当前 Activity 以绑定生命周期
-            webContainer.init(this@MainActivity, LOG.VERBOSE)
+            webContainer.init(this@MainActivity, savedInstanceState, LOG.VERBOSE)
             
             // 添加页面观察者，按需监听关注的事件即可（PageObserver 接口默认空实现，无需堆砌模板代码）
             webContainer.addPageObserver(object : PageObserver {
@@ -60,28 +58,8 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    override fun onSaveInstanceState(outState: Bundle, outPersistentState: PersistableBundle) {
-        super.onSaveInstanceState(outState, outPersistentState)
+    override fun onSaveInstanceState(outState: Bundle) {
         binding.webContainer.onSaveInstanceState(outState)
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        binding.webContainer.onActivityResult(requestCode, resultCode, data)
-
-    }
-
-    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) {
-        binding.webContainer.startActivityForResult(requestCode)
-        super.startActivityForResult(intent, requestCode, options)
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray,
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        binding.webContainer.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        super.onSaveInstanceState(outState)
     }
 }
